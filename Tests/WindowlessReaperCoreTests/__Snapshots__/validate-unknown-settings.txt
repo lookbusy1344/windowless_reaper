@@ -1,0 +1,1 @@
+Unknown key '[settings].timeuot'. Allowed: poll_interval, log_level, dry_run, default_cooldown, default_timeout, clear_cooldown, adaptive_pressure.

@@ -1,0 +1,10 @@
+retain_public: false
+retain_objc_accessible: false
+retain_assign_only_properties: false
+retain_unused_protocol_func_params: false
+retain_files:
+  - Tests/**
+skip_schemes_validation: true
+index_store_path: .build/index/store
+skip_build: true
+strict: true

@@ -1,0 +1,7 @@
+brew "swiftlint"
+brew "swiftformat"
+brew "periphery"
+brew "fswatch"
+brew "xcbeautify"
+brew "coreutils"
+brew "jq"

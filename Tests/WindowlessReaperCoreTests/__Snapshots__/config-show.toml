@@ -1,0 +1,14 @@
+[apps.'com.apple.Safari']
+timeout = '3m'
+
+[apps.'com.apple.mail']
+cooldown = '20m'
+timeout = '10m'
+
+[settings]
+adaptive_pressure = false
+clear_cooldown = '30s'
+default_cooldown = '5x'
+dry_run = false
+log_level = 'info'
+poll_interval = '30s'

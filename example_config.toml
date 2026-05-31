@@ -1,0 +1,173 @@
+# windowless-reaper configuration
+# Location: ~/.config/windowless-reaper/config.toml
+
+[settings]
+# How often the engine checks running apps.
+poll_interval     = "30s"       # minimum: 10s
+
+# Logging verbosity: trace | debug | info | notice | warn | error
+log_level         = "info"
+
+# When true, decisions are logged but terminate() is never called.
+dry_run           = false
+
+# Post-terminate cooldown. Prevents reaping auto-relaunched apps.
+# Accepts a multiplier of the app's timeout ("5x") or an absolute duration ("15m").
+default_cooldown  = "55s"
+
+# Fallback timeout for any rule written as `timeout = "default"`.
+# Omit this key and no fallback exists — `timeout = "default"` becomes a
+# load-time error. Standard duration syntax: "30s", "3m", "1h", etc.
+default_timeout   = "3m"
+
+# `wreaper clear` ignores any bundle whose newest PID launched within this
+# window — protects apps the user just opened. Default 30s. Minimum 10s.
+clear_cooldown    = "30s"
+
+# Per-app rules. Keys are CFBundleIdentifier — never display name.
+# Only apps listed here are ever candidates for termination.
+#
+# `timeout = "none"` keeps the entry but never reaps the app. Useful when
+# scaffolding a config from currently-running apps (`wreaper config
+# scaffold`): flip "none" to a real duration to activate a rule.
+#
+# `timeout = "default"` inherits `[settings].default_timeout` above.
+
+# [apps."com.apple.mail"]
+# timeout  = "10m"
+# cooldown = "5m"    # override default_cooldown for this app
+
+# ========== Apple apps ==========
+
+[apps."com.apple.Safari"]
+timeout = "5m"
+
+[apps."com.apple.Terminal"]
+timeout = "5m"
+
+[apps."com.apple.ActivityMonitor"]
+timeout = "5m"
+
+[apps."com.apple.Preview"]
+timeout = "default"
+
+[apps."com.apple.TextEdit"]
+timeout = "default"
+
+[apps."com.apple.dt.Xcode"]
+timeout = "5m"
+
+[apps."com.apple.iCal"]
+timeout = "5m"
+
+[apps."com.apple.Maps"]
+timeout = "default"
+
+[apps."com.apple.shortcuts"]
+timeout = "default"
+
+[apps."com.apple.Automator"]
+timeout = "default"
+
+[apps."com.apple.Music"]
+timeout = "default"
+
+[apps."com.apple.iBooksX"]
+timeout = "default"
+
+[apps."com.apple.TV"]
+timeout = "default"
+
+[apps."com.apple.podcasts"]
+timeout = "default"
+
+[apps."com.apple.stocks"]
+timeout = "default"
+
+[apps."com.apple.Numbers"]
+timeout = "default"
+
+[apps."com.apple.iWork.Pages"]
+timeout = "default"
+
+[apps."com.apple.QuickTimePlayerX"]
+timeout = "default"
+
+[apps."com.apple.freeform"]
+timeout = "default"
+
+[apps."com.apple.journal"]
+timeout = "default"
+
+[apps."com.apple.grapher"]
+timeout = "default"
+
+[apps."com.apple.news"]
+timeout = "default"
+
+[apps."com.apple.ScriptEditor2"]
+timeout = "default"
+
+[apps."com.apple.Stickies"]
+timeout = "default"
+
+[apps."com.apple.audio.AudioMIDISetup"]
+timeout = "default"
+
+[apps."com.apple.Chess"]
+timeout = "default"
+
+# ========== third party apps ==========
+
+[apps."com.microsoft.VSCode"]
+timeout = "5m"
+
+[apps."com.syntevo.smartgit"]
+timeout = "5m"
+
+[apps."dev.zed.Zed"]
+timeout = "8m"
+
+[apps."com.google.Chrome"]
+timeout = "default"
+
+[apps."com.microsoft.Excel"]
+timeout = "default"
+
+[apps."com.microsoft.Word"]
+timeout = "default"
+
+[apps."com.microsoft.Powerpoint"]
+timeout = "default"
+
+[apps."com.binarynights.ForkLift"]
+timeout = "5m"
+
+[apps."ai.elementlabs.lmstudio"]
+timeout = "default"
+# cooldown = "5m"
+
+[apps."net.sourceforge.grandperspectiv"]
+timeout = "default"
+
+# Audible is not killable for some reason. iPhone app??
+# [apps."com.audible.iphone"]
+# timeout = "default"
+
+[apps."com.anthropic.claudefordesktop"]
+timeout = "default"
+
+[apps."com.openai.codex"]
+timeout = "default"
+
+[apps."com.microsoft.copilot-mac"]
+timeout = "default"
+
+[apps."com.perforce.p4merge"]
+timeout = "1m"
+
+[apps."com.adobe.Photoshop"]
+timeout = "default"
+
+[apps."net.whatsapp.WhatsApp"]
+timeout = "20m"

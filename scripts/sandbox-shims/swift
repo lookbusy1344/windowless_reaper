@@ -1,0 +1,31 @@
+#!/bin/bash
+# Sandbox shim: forwards to the real `swift`, auto-injecting
+# `--disable-sandbox` on SwiftPM subcommands that would otherwise try to
+# nest sandbox-exec inside the outer Seatbelt profile (which the kernel
+# refuses with `sandbox_apply: Operation not permitted`).
+#
+# Only intended to sit on PATH when launched via ./sandbox.sh — the outer
+# profile still enforces the filesystem boundary, so disabling SwiftPM's
+# redundant inner layer is safe. Do NOT put this directory on PATH in a
+# plain shell; that would leave dependency build plugins unsandboxed.
+#
+# Affected callers in practice: `swift build`, `swift test`, and tools that
+# shell out to `swift package describe` (e.g. periphery).
+
+set -euo pipefail
+
+REAL_SWIFT=/usr/bin/swift
+
+case "${1:-}" in
+    package|build|test|run)
+        for arg in "$@"; do
+            if [[ "$arg" == "--disable-sandbox" ]]; then
+                exec "$REAL_SWIFT" "$@"
+            fi
+        done
+        exec "$REAL_SWIFT" "$1" --disable-sandbox "${@:2}"
+        ;;
+    *)
+        exec "$REAL_SWIFT" "$@"
+        ;;
+esac

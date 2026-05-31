@@ -1,0 +1,24 @@
+[version]
+version: 0.1.0
+pid: 4242
+
+[accessibility]
+accessibility: granted
+
+[config]
+config: /Users/test/.config/windowless-reaper/config.toml
+poll_interval: 30s
+log_level: info
+dry_run: false
+rules: 1
+  com.apple.Safari timeout=3m
+
+[effective]
+log_level: info
+dry_run: false
+
+[launchagent]
+installed: false
+
+[recent-decisions]
+  ignore   com.apple.Safari
