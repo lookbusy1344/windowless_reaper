@@ -9,11 +9,10 @@ than a per-app timeout. It is strictly allowlist-driven: only bundle IDs
 named in the config are ever candidates.
 
 - Whitelist only: no app is touched without an explicit rule
-- Only windowless apps: visible or minimised windows reset the timer
+- Only windowless apps: visible or minimised windows are never touched
 - Polite termination: always `terminate()`, never `forceTerminate()`
-- Daemon checks every 30s by default, with hot-reloadable config
-- Behaves well under sleep/wake — no false reaps after wake, and sleep does not
-  advance timers
+- Daemon checks every 30s by default, with hot-reloadable config. Minimal system resources used
+- Behaves well under sleep/wake — no false reaps after wake, and sleep does not advance timers
 - CLI supports one-shot checks and clears for manual use `wreaper check` / `wreaper clear`
 
 ## Why
@@ -22,7 +21,11 @@ macOS apps routinely linger after the last window is closed by clicking close (t
 `NSRunningApplication.terminate()`. If the app vetoes (e.g. unsaved work), the
 timer resets and nothing is forced.
 
-Only whitelisted apps are candidates, and no running or minimised window is ever closed. So there should be zero chance of losing work. However use at your own risk!
+Only whitelisted apps are candidates, and no running or minimised window is ever closed. So there should be zero chance of losing work.
+
+However use at your own risk!
+
+I have Raycast configured to call `wreaper clear` on `opt`+`cmd`+`w` which works really well.
 
 ---
 
