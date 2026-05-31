@@ -23,7 +23,9 @@ Mode 1 is just `scripts/sign.sh`.
 with the tag and `git rev-parse --short HEAD`. Both the CI workflow and
 `scripts/release.sh` stamp before `swift build -c release`, so a released
 binary self-reports the tag that produced it. A plain `swift build` does **not**
-stamp — dev builds report the placeholder.
+stamp — dev builds report the placeholder. Use `scripts/dev-build.sh`
+(passes extra args through to `swift build`) to stamp the live `git describe`
+version + short hash for a local build; it restores the placeholder on exit.
 
 ## Ad-hoc tag release (mode 2)
 

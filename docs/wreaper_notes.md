@@ -105,10 +105,17 @@ first time.
 ### 1. Build and sign
 
 ```bash
-swift build -c release
+scripts/dev-build.sh -c release
 scripts/sign.sh
 codesign --verify --strict --verbose=4 .build/release/wreaper
 ```
+
+`scripts/dev-build.sh` stamps the live `git describe` version + commit so the
+installed daemon self-reports a meaningful `--version` (a plain
+`swift build -c release` reports `0.0.0-dev`). Args pass through to
+`swift build`. Alternatively install a prebuilt release — `v*` tags publish an
+ad-hoc signed binary to GitHub Releases (see `DISTRIBUTION.md`). Confirm with
+`wreaper --version` and the `[version]` line in `wreaper diagnose`.
 
 ### 2. Copy the binary to its stable install path
 
@@ -184,7 +191,7 @@ to pick up the new binary.
 ### 1. Rebuild and sign the new binary
 
 ```bash
-swift build -c release
+scripts/dev-build.sh -c release
 scripts/sign.sh
 codesign --verify --strict --verbose=4 .build/release/wreaper
 ```

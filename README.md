@@ -18,17 +18,41 @@ timer resets and nothing is forced.
 
 ## Install
 
+### Prebuilt release
+
+Each `v*` tag publishes an **ad-hoc signed** binary, a tarball, and
+`SHA256SUMS` to [GitHub Releases](../../releases):
+
+```bash
+curl -L -o wreaper \
+  https://github.com/<owner>/windowless_reaper/releases/latest/download/wreaper
+chmod +x wreaper
+# A browser download is quarantined; clear it once:
+#   xattr -dr com.apple.quarantine ./wreaper
+```
+
+`wreaper --version` reports the tag and commit it was built from, e.g.
+`1.2.0 (3f29b14f08eb)`. Ad-hoc signing carries no Developer-ID identity, so
+Accessibility is still granted manually (below). See `DISTRIBUTION.md` for the
+signing-mode tradeoffs.
+
+### Build from source
+
 Requires Swift 6.2+ (pinned in `.swift-version` and `Package.swift`), tested
 with the Xcode 16+ toolchain. SwiftPM only — there is no `.xcodeproj` or
 `.xcworkspace`. You can open `Package.swift` in Xcode to browse, but builds
 and tests go through `swift`.
 
 ```bash
-swift build -c release
+scripts/dev-build.sh -c release              # build, stamping the live git version
 scripts/sign.sh                              # ad-hoc sign with a stable identifier
 cp .build/release/wreaper /usr/local/bin/    # or $(brew --prefix)/bin
 wreaper config init                          # writes ~/.config/windowless-reaper/config.toml
 ```
+
+`scripts/dev-build.sh` stamps the live `git describe` version + commit into
+`--version` and passes extra args through to `swift build`. A plain
+`swift build` skips the stamp and reports `0.0.0-dev`.
 
 For a faster first pass at the app rules, `wreaper config scaffold` is often
 the better starting point than editing from scratch: it inspects the current
@@ -42,7 +66,8 @@ absolute path to `wreaper`. macOS does not expose this via API. Verify with:
 wreaper permissions check
 ```
 
-`DISTRIBUTION.md` covers the signed/notarised release flow.
+`DISTRIBUTION.md` covers the tag-triggered ad-hoc release workflow and the
+signed/notarised release flow.
 For more operational detail, see [docs/wreaper_notes.md](docs/wreaper_notes.md), which covers Accessibility grant/verification, daemon install/update, log locations, and `launchctl` lifecycle.
 
 ---
@@ -308,7 +333,7 @@ line per hour is plenty for a 72hr window without drowning the log.
 1. **Install the daemon** (build + sign + load).
 
 ```bash
-swift build -c release
+scripts/dev-build.sh -c release
 scripts/sign.sh
 cp .build/release/wreaper "$(brew --prefix)/bin/"
 wreaper install --user
