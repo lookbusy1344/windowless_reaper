@@ -65,27 +65,31 @@ public final class NSWorkspaceScreenWake: SystemPowerStateObserver {
 
     public func start() async {
         let center = NSWorkspace.shared.notificationCenter
-        if state.withLock({ !$0.tokens.isEmpty }) {
-            return
+        // Register inside the lock so the freshly created (non-Sendable) tokens
+        // are born in the state's region; their only captures (`center`, `self`)
+        // are Sendable, so nothing task-isolated merges into the `inout sending`
+        // parameter. Hoisting registration out (as a separate withLock) trips
+        // Swift 6.2 region isolation: 'inout sending' cannot be task-isolated.
+        let didStart = state.withLock { s -> Bool in
+            guard s.tokens.isEmpty else { return false }
+            let sleepToken = center.addObserver(
+                forName: NSWorkspace.screensDidSleepNotification,
+                object: nil,
+                queue: nil
+            ) { [weak self] _ in
+                self?.transition(to: false)
+            }
+            let wakeToken = center.addObserver(
+                forName: NSWorkspace.screensDidWakeNotification,
+                object: nil,
+                queue: nil
+            ) { [weak self] _ in
+                self?.transition(to: true)
+            }
+            s.tokens = [sleepToken, wakeToken]
+            return true
         }
-
-        let sleepToken = center.addObserver(
-            forName: NSWorkspace.screensDidSleepNotification,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            self?.transition(to: false)
-        }
-
-        let wakeToken = center.addObserver(
-            forName: NSWorkspace.screensDidWakeNotification,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            self?.transition(to: true)
-        }
-
-        state.withLock { $0.tokens = [sleepToken, wakeToken] }
+        guard didStart else { return }
         logger.notice("power state observer started video=\(isUserVisible())")
     }
 

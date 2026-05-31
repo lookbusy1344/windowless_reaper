@@ -52,25 +52,31 @@ public final class SystemPowerPressure: PowerPressureObserver {
 
     public func start() async {
         let center = NotificationCenter.default
-        if state.withLock({ !$0.tokens.isEmpty }) {
-            return
+        // Register inside the lock so the freshly created (non-Sendable) tokens
+        // are born in the state's region; their only captures (`center`, `self`)
+        // are Sendable, so nothing task-isolated merges into the `inout sending`
+        // parameter. Hoisting registration out (as a separate withLock) trips
+        // Swift 6.2 region isolation: 'inout sending' cannot be task-isolated.
+        let didStart = state.withLock { s -> Bool in
+            guard s.tokens.isEmpty else { return false }
+            let lpmToken = center.addObserver(
+                forName: .NSProcessInfoPowerStateDidChange,
+                object: nil,
+                queue: nil
+            ) { [weak self] _ in
+                self?.logTransition(reason: "lpm")
+            }
+            let thermalToken = center.addObserver(
+                forName: ProcessInfo.thermalStateDidChangeNotification,
+                object: nil,
+                queue: nil
+            ) { [weak self] _ in
+                self?.logTransition(reason: "thermal")
+            }
+            s.tokens = [lpmToken, thermalToken]
+            return true
         }
-
-        let lpmToken = center.addObserver(
-            forName: .NSProcessInfoPowerStateDidChange,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            self?.logTransition(reason: "lpm")
-        }
-        let thermalToken = center.addObserver(
-            forName: ProcessInfo.thermalStateDidChangeNotification,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            self?.logTransition(reason: "thermal")
-        }
-        state.withLock { $0.tokens = [lpmToken, thermalToken] }
+        guard didStart else { return }
         logger.notice("power-pressure observer started \(Self.describe(snapshot()))")
     }
 
