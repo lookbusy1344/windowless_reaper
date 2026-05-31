@@ -1,131 +1,189 @@
-# wreaper operational notes
+# wreaper operator guide
 
-## Build and deployment
+This document is the operational reference for running `wreaper` as either:
 
-```
-swift build -c release
-scripts/sign.sh
-codesign --verify --strict --verbose=4 .build/release/wreaper
-cp .build/release/wreaper ~/Documents/dev/utils
-```
+- a one-shot CLI tool
+- a persistent per-user `launchd` daemon
 
-## Other useful
+The README gives the short version. This guide is the step-by-step version.
 
-```
-bat ~/Library/Application\ Support/windowless-reaper/state.json
-cp ~/.config/windowless-reaper/config.toml ./example_config.toml
-zed ~/.config/windowless-reaper/config.toml
-bat ~/.config/windowless-reaper/config.toml
-```
+## Operating modes
 
-## Run commands
+`wreaper` supports two distinct workflows:
 
-```
-wreaper run --log-level debug
-wreaper check
-wreaper clear
-wreaper config scaffold
-```
+- One-shot CLI commands: run once, report a result, then exit.
+- Persistent daemon mode: run continuously under `launchd` with `KeepAlive`
+  and config reload on save.
+
+Use one-shot commands when you want manual verification or explicit
+fire-and-exit execution. Use the daemon when you want continuous background
+reaping.
 
 ## Accessibility permission
 
-`wreaper` needs the macOS Accessibility grant because visibility checks and
-polite termination both go through APIs guarded by TCC.
+`wreaper` needs the macOS Accessibility grant. The grant is required for the
+window visibility checks and polite termination path used by the engine.
 
-Grant it once in the GUI:
+### Granting permission
+
+macOS does not expose a supported CLI for granting Accessibility access, so the
+grant must be done in the GUI:
 
 1. Open `System Settings`.
-2. Go to `Privacy & Security`.
+2. Open `Privacy & Security`.
 3. Open `Accessibility`.
 4. Add the exact on-disk `wreaper` binary path you intend to run, for example
    `/usr/local/bin/wreaper`.
 
-Verify from the command line:
+### Verifying permission
 
-```
+Verify the grant from the command line:
+
+```bash
 wreaper permissions check
 ```
 
-That command is the CLI-side confirmation point. macOS does not expose a
-supported CLI or API to grant Accessibility permission directly, so grant is
-GUI-managed and verification is command-line.
+### Path and signing rules
 
-If you replace the binary in place and keep the same code-signing identifier,
-the existing Accessibility grant should remain valid. This is why the release
-flow signs with a stable identifier before install/update.
+- The Accessibility grant is tied to the installed binary path.
+- Keep the installed path stable across updates.
+- Keep the code-signing identifier stable across updates.
+
+If both stay stable, replacing the binary in place should not require
+re-granting Accessibility.
+
+## One-shot CLI usage
+
+These commands are the primary one-shot entry points:
+
+```bash
+wreaper check
+wreaper clear
+```
+
+Useful supporting commands:
+
+```bash
+wreaper run --log-level debug
+wreaper permissions check
+wreaper config scaffold
+wreaper config validate
+wreaper config show
+```
+
+For first-time config setup, `wreaper config scaffold` is usually the quickest
+starting point because it emits starter rules from the currently running apps.
+
+### What each command is for
+
+- `wreaper check`: perform one dry-run evaluation tick and exit.
+- `wreaper clear`: terminate allowlisted apps that are currently windowless,
+  subject to `clear_cooldown`.
+- `wreaper run --log-level debug`: run in the foreground for manual validation.
+- `wreaper permissions check`: verify Accessibility state for the installed
+  binary path.
+- `wreaper config scaffold`: generate a starter config from the current app
+  set, then trim it down to the bundle IDs you actually want to manage.
+
+### Recommended config setup flow
+
+```bash
+wreaper config init
+wreaper config scaffold
+wreaper config validate
+```
+
+After scaffolding, edit `~/.config/windowless-reaper/config.toml` and remove
+any bundle IDs you do not want allowlisted. The scaffold is a starting point,
+not a final policy.
 
 ## First-time daemon install
 
-Use this flow when setting up the persistent `launchd` daemon for the first
-time.
+Use this procedure when setting up the persistent `launchd` agent for the
+first time.
 
 ### 1. Build and sign
 
-```
+```bash
 swift build -c release
 scripts/sign.sh
 codesign --verify --strict --verbose=4 .build/release/wreaper
 ```
 
-### 2. Copy to the stable install path
+### 2. Copy the binary to its stable install path
 
-Pick one path and keep using it. The Accessibility grant is tied to the exact
-binary path, so avoid moving the installed binary around between updates.
+Pick one install path and keep using it. Do not move between paths across
+updates unless you are also prepared to re-check Accessibility.
 
-Examples:
+Example using `/usr/local/bin`:
 
-```
+```bash
 cp .build/release/wreaper /usr/local/bin/
 ```
 
-or
+Example using Homebrew's prefix:
 
-```
+```bash
 cp .build/release/wreaper "$(brew --prefix)/bin/"
 ```
 
-### 3. Grant Accessibility to that exact path
+### 3. Grant Accessibility to that exact installed path
 
-In `System Settings -> Privacy & Security -> Accessibility`, add the installed
-binary path, for example `/usr/local/bin/wreaper`.
+Grant permission in `System Settings -> Privacy & Security -> Accessibility`
+for the path you installed in step 2.
 
-### 4. Verify permission from the CLI
+### 4. Verify Accessibility from the CLI
 
-```
+```bash
 wreaper permissions check
 ```
 
 ### 5. Install and load the LaunchAgent
 
-```
+Default install path resolution order:
+
+1. `--prefix <path>` if passed
+2. `$HOMEBREW_PREFIX/bin/wreaper` if that environment variable is set in the
+   shell running the install command
+3. `/usr/local/bin/wreaper`
+
+Install the daemon:
+
+```bash
 wreaper install --user
 ```
 
-If you installed the binary somewhere non-default, tell the installer which
-prefix to use:
+If the binary lives under a non-default prefix, pass it explicitly:
 
-```
+```bash
 wreaper install --user --prefix /opt/homebrew
 ```
 
-### 6. Verify the daemon is live
+Useful variants:
 
+```bash
+wreaper install --user --print-only
+wreaper install --user --force
 ```
+
+### 6. Verify the agent is running
+
+```bash
 launchctl print gui/$(id -u)/com.user.windowless-reaper
 tail -F ~/Library/Logs/windowless-reaper.log
 ```
 
-The log file is the authoritative runtime output when running under
-`launchd`.
+When running under `launchd`, the file log is the authoritative runtime output.
+Do not expect useful `launchd` stdout/stderr files.
 
 ## Updating the daemon after a rebuild
 
-Use this flow after rebuilding `wreaper` and wanting the already-installed
-daemon to pick up the new binary.
+Use this procedure after rebuilding `wreaper` and wanting the installed daemon
+to pick up the new binary.
 
 ### 1. Rebuild and sign the new binary
 
-```
+```bash
 swift build -c release
 scripts/sign.sh
 codesign --verify --strict --verbose=4 .build/release/wreaper
@@ -133,173 +191,178 @@ codesign --verify --strict --verbose=4 .build/release/wreaper
 
 ### 2. Replace the installed binary in place
 
-Replace the existing binary at the same path you originally granted in
+Replace the binary at the same installed path you originally granted in
 Accessibility settings.
 
-Examples:
+Example using `/usr/local/bin`:
 
-```
+```bash
 cp .build/release/wreaper /usr/local/bin/
 ```
 
-or
+Example using Homebrew's prefix:
 
-```
+```bash
 cp .build/release/wreaper "$(brew --prefix)/bin/"
 ```
 
-### 3. Restart the loaded LaunchAgent
+### 3. Restart the loaded agent
 
-`launchd` keeps the old inode open until you bounce the job.
+`launchd` keeps the old inode open until you bounce the job. After replacing
+the binary, restart the job:
 
-```
+```bash
 launchctl kickstart -k gui/$(id -u)/com.user.windowless-reaper
 ```
 
-If you used a custom label, use the exact label printed by `wreaper install`.
+If you are not using the default label, use the exact label printed by
+`wreaper install`.
 
 ### 4. Verify the updated daemon
 
-```
+```bash
 launchctl print gui/$(id -u)/com.user.windowless-reaper
 tail -n 50 ~/Library/Logs/windowless-reaper.log
 ```
 
-If the install path and code-signing identifier remain stable, you should not
-need to re-grant Accessibility after an update.
+If the installed path and code-signing identifier remain stable, you should not
+need to re-grant Accessibility after the update.
 
-## Memory load
+## Monitoring and inspection
 
-```
-footprint wreaper
-```
+### Log file
 
-Or updating every minute
+Daemon mode writes to:
 
-```
-PID=$(pgrep -f "/usr/local/bin/wreaper run")
-while sleep 60; do
-  printf '%s  ' "$(date '+%Y-%m-%d %H:%M:%S')"
-  ps -o rss=,vsz=,pagein=,time=,etime=,%cpu= -p $PID
-done | tee /tmp/wreaper-watch.log
+```text
+~/Library/Logs/windowless-reaper.log
 ```
 
-## CPU
+Useful commands:
 
-```
-top -pid $(pgrep -f "/usr/local/bin/wreaper run") -stats pid,command,cpu,time,mem,state
-ps -o pid,%cpu,time,etime -p $(pgrep -f "/usr/local/bin/wreaper run")
-```
-
-## LOG
-
-```
+```bash
 tail -F ~/Library/Logs/windowless-reaper.log
 bat ~/Library/Logs/windowless-reaper.log
 ```
 
-## Installing as background task
+Log behavior:
 
-The first-time install and update procedures above are the authoritative
-workflow. This section keeps the low-level reference details in one place.
+- Rotating and bounded by the daemon's file logger.
+- Rotation threshold is 5 MiB with one backup generation.
+- Worst-case on-disk footprint is roughly 10 MiB for `.log` plus `.log.1`.
+- `launchd` stdout/stderr are discarded to `/dev/null`.
 
-Install as a per-user LaunchAgent, starts automatically on login:
+### Runtime status
 
-```
-sudo install -m 0755 ~/Documents/dev/utils/wreaper /usr/local/bin/wreaper
-wreaper install --user --prefix /usr/local
-wreaper uninstall --user
-```
+Check whether the agent is loaded and inspect its state:
 
-inspect status: `launchctl print gui/501/com.user.windowless-reaper`
-
-Installation path resolution order (InstallPathResolver.swift:12):
-
-1. `--prefix <path>` if passed
-2. `$HOMEBREW_PREFIX/bin/wreaper` if that env var is set in the shell running install
-3. `/usr/local/bin/wreaper` fallback
-
-Inspect runtime status anytime with `launchctl print gui/$(id -u)/<label>` (the exact label is printed by the install command).
-
-After replacing the binary you need to bounce the agent so launchd re-execs the new copy (the running process keeps the old inode):
-
-```
-launchctl kickstart -k gui/$(id -u)/<label>
+```bash
+launchctl print gui/$(id -u)/com.user.windowless-reaper
 ```
 
-The exact label is what wreaper install printed (LaunchAgentPlist.label).
+Check whether the process is currently running:
 
-Updating the daemon is the same binary replacement flow followed by a
-`launchctl kickstart -k ...` bounce. If you keep the same install path and a
-stable signing identifier, you should not need to re-grant Accessibility.
-
-## Logs (when installed as a task)
-
-```
-~/Library/Logs/windowless-reaper.log
+```bash
+pgrep -x wreaper
 ```
 
-Bounded/rotating — owned by the daemon's RotatingFileLogHandler, not launchd. Launchd's own stdout/stderr are deliberately discarded to /dev/null, so don't bother looking for .out/.err files.
+### Memory monitoring
 
-Tail it with:
+Quick snapshot:
 
+```bash
+footprint wreaper
 ```
-tail -F ~/Library/Logs/windowless-reaper.log
+
+Rolling sample every minute:
+
+```bash
+PID=$(pgrep -f "/usr/local/bin/wreaper run")
+while sleep 60; do
+  printf '%s  ' "$(date '+%Y-%m-%d %H:%M:%S')"
+  ps -o rss=,vsz=,pagein=,time=,etime=,%cpu= -p "$PID"
+done | tee /tmp/wreaper-watch.log
 ```
 
-### File: App log
-Path: ~/Library/Logs/windowless-reaper.log (+ .log.1 backup)
-Size-limited: Yes — rotated at 5 MiB (LogLevelBootstrap.defaultLogRotateBytes), one backup generation, so worst-case ~10 MiB on disk (RotatingFileLogHandler.swift:13)
+If your installed path is not `/usr/local/bin/wreaper`, adjust the `pgrep -f`
+pattern accordingly.
 
-### File: Launchd stdout/stderr
-Path: /dev/null
-Size N/A — discarded; daemon owns its own log (LaunchAgentPlist.swift:14)
+### CPU monitoring
 
-### File: Checkpoint state
-Path: ~/Library/Application Support/windowless-reaper/state.json
-No explicit cap — single atomic JSON, bounded only by the tracker's entry count (one per allowlisted bundle), so effectively a few KB
-
-### File: Config
-Path: ~/.config/windowless-reaper/config.toml
-User-owned, not written by daemon
-
-### File: LaunchAgent plist
-Path: ~/Library/LaunchAgents/com.user.windowless-reaper.plist
-Static, written once by wreaper install
-
-So the only growth-prone file (the log) is bounded; everything else is either discarded, tiny-and-bounded by domain, or user-owned.
-
-## Disabling daemon and autostart
-
-Two-step. bootout alone only stops the current run — at next login the plist in ~/Library/LaunchAgents/ auto-loads again. You need disable to persist the "don't run" decision.
-
-### 1. Mark it disabled (persists across reboots, survives plist reload)
+```bash
+top -pid $(pgrep -f "/usr/local/bin/wreaper run") -stats pid,command,cpu,time,mem,state
+ps -o pid,%cpu,time,etime -p $(pgrep -f "/usr/local/bin/wreaper run")
 ```
+
+If your installed path is not `/usr/local/bin/wreaper`, adjust the `pgrep -f`
+pattern accordingly.
+
+### State and config files
+
+Checkpoint state:
+
+```text
+~/Library/Application Support/windowless-reaper/state.json
+```
+
+Config:
+
+```text
+~/.config/windowless-reaper/config.toml
+```
+
+Useful commands:
+
+```bash
+bat ~/Library/Application\ Support/windowless-reaper/state.json
+bat ~/.config/windowless-reaper/config.toml
+cp ~/.config/windowless-reaper/config.toml ./example_config.toml
+```
+
+## Disabling or uninstalling the daemon
+
+### Disable autostart and stop the current run
+
+`bootout` alone only stops the current process. The plist in
+`~/Library/LaunchAgents` will still auto-load at next login unless the job is
+also disabled.
+
+Disable first:
+
+```bash
 launchctl disable gui/$(id -u)/com.user.windowless-reaper
 ```
 
-### 2. Stop the running instance
-```
+Then stop the running instance:
+
+```bash
 launchctl bootout gui/$(id -u)/com.user.windowless-reaper
 ```
 
-### 3. Verify
-```
-launchctl print-disabled gui/$(id -u) | grep windowless-reaper
-```
-expect:  "com.user.windowless-reaper" => disabled
+Verify:
 
-```
+```bash
+launchctl print-disabled gui/$(id -u) | grep windowless-reaper
 pgrep -x wreaper && echo "still running" || echo "stopped"
 ```
 
-Order matters: disable first sets the flag, so when bootout exits the process, KeepAlive=true can't trigger a respawn — the disabled flag wins.
+The order matters. Disabling first prevents `KeepAlive=true` from immediately
+respawning the job after `bootout`.
 
-To restart later:
+### Re-enable later
 
-```
+```bash
 launchctl enable gui/$(id -u)/com.user.windowless-reaper
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.user.windowless-reaper.plist
 ```
 
-If you want it completely gone (plist removed, not just disabled), use wreaper uninstall --user instead — that deletes ~/Library/LaunchAgents/com.user.windowless-reaper.plist and unloads the job in one shot. The binary at /usr/local/bin/wreaper and the Accessibility grant are left in place, so you can reinstall later without re-doing the GUI dance.
+### Uninstall completely
+
+```bash
+wreaper uninstall --user
+```
+
+That removes `~/Library/LaunchAgents/com.user.windowless-reaper.plist` and
+unloads the job. The installed binary and Accessibility grant are left in place
+so the daemon can be installed again later without repeating the full setup if
+the path and signing identity remain unchanged.

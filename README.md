@@ -30,6 +30,10 @@ cp .build/release/wreaper /usr/local/bin/    # or $(brew --prefix)/bin
 wreaper config init                          # writes ~/.config/windowless-reaper/config.toml
 ```
 
+For a faster first pass at the app rules, `wreaper config scaffold` is often
+the better starting point than editing from scratch: it inspects the current
+running apps and emits a starter config.
+
 Grant Accessibility permission once:
 *System Settings → Privacy & Security → Accessibility → +* and add the
 absolute path to `wreaper`. macOS does not expose this via API. Verify with:
@@ -52,21 +56,14 @@ For more operational detail, see [docs/wreaper_notes.md](docs/wreaper_notes.md),
   reload config on save.
 
 The two one-shot commands below are useful for manual verification and
-scheduled fire-and-exit workflows via `cron` or `launchd`'s
-`StartCalendarInterval`. For continuous background reaping, use the
+explicit fire-and-exit use. For continuous background reaping, use the
 `launchd` workflow in [Live-running under launchd](#live-running-under-launchd):
 
 - `wreaper check` — dry-run a single tick, print decisions, exit
   non-zero if any rule would evict. Good for verifying config.
 - `wreaper clear` — terminate every allowlisted bundle that is
   fully windowless right now, honouring `clear_cooldown` so
-  just-launched apps are spared. Designed for scripts.
-
-Example: reap every 15 minutes from the user's `cron`:
-
-```cron
-*/15 * * * * /usr/local/bin/wreaper clear >> ~/Library/Logs/windowless-reaper.cron.log 2>&1
-```
+  just-launched apps are spared. Designed for explicit one-shot use.
 
 See [Manually test before going live](#manually-test-before-going-live)
 for full output samples and flags. The `launchd` section below documents
@@ -81,6 +78,14 @@ freely — `wreaper run` reloads on save without a restart. `poll_interval`
 changes take effect on the next tick after reload. `log_level` changes apply
 unless `--log-level` was passed on the command line, in which case the CLI
 wins.
+
+For initial setup, the fastest workflow is usually:
+
+1. Run `wreaper config init` to create the config file location.
+2. Run `wreaper config scaffold` to generate starter app rules from the
+   current process list.
+3. Edit the generated TOML to keep only the bundle IDs you actually want
+   allowlisted.
 
 ### Minimal example
 
@@ -175,8 +180,8 @@ sanity-check a rule change.
 
 Like `check`, but instead of waiting for each app's `timeout`, every
 allowlisted bundle that is currently fully windowless is terminated in a
-single pass. Runs without prompts so it slots into scripts and `cron`
-invocations:
+single pass. Runs without prompts so it can be invoked directly from the CLI
+or other explicit automation:
 
 ```
 skip       com.tinyspeck.slackmacgap has-window     age=5m
