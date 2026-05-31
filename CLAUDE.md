@@ -2,6 +2,14 @@
 
 SwiftPM only. No `.xcodeproj`, no `xcodebuild`.
 
+## Swift version
+
+We target the **latest** released Swift toolchain — not the version that
+happens to ship with stock Xcode. Build and test against latest locally
+(install via `swiftly install latest`); CI does the same. `Package.swift`'s
+`swift-tools-version` is the SwiftPM floor, not a cap: newer language
+behaviour (e.g. relaxed region-isolation checks) is expected and relied on.
+
 ## Build & test
 
 ```bash
