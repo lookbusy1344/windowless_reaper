@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, Lint & Test
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Swift build artifacts
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-swift-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-
+
+      - name: Install tools
+        run: brew install swiftlint swiftformat periphery coreutils
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
+
+      - name: SwiftFormat lint
+        run: swiftformat --lint .
+
+      - name: SwiftLint
+        run: swiftlint --strict
+
+      - name: Build & test (with index store for Periphery)
+        run: gtimeout 60 swift test --parallel -Xswiftc -index-store-path -Xswiftc .build/index/store
+
+      - name: Periphery dead-code scan
+        run: periphery scan --strict
