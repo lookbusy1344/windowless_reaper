@@ -43,23 +43,29 @@ run() {
 
 echo "==> Running windowless_reaper pre-commit checks..."
 
-run swiftformat --lint .
-run swiftlint --strict
-run gtimeout 30 swift test --parallel
+swift_staged=$(git diff --cached --name-only -- '*.swift')
 
-# Build with tests first so periphery can see test-target references.
-run swift build --build-tests -Xswiftc -index-store-path -Xswiftc .build/index/store
-run periphery scan --strict
+if [[ -n "${swift_staged}" ]]; then
+    run swiftformat --lint .
+    run swiftlint --strict
 
-# Reject additions of @unchecked Sendable / nonisolated(unsafe) without an inline justification comment.
-unsafe_additions=$(git diff HEAD -U0 -- '*.swift' \
-    | grep -E '^\+[^+]' \
-    | grep -E '@unchecked Sendable|nonisolated\(unsafe\)' \
-    | grep -vE '//' || true)
-if [[ -n "${unsafe_additions}" ]]; then
-    echo "==> FAIL: new @unchecked Sendable / nonisolated(unsafe) without an inline comment:" >&2
-    echo "${unsafe_additions}" >&2
-    exit 1
+    # Build tests with index store populated so periphery can see test-target references,
+    # then run the suite — one compile cycle covers both.
+    run gtimeout 30 swift test --parallel -Xswiftc -index-store-path -Xswiftc .build/index/store
+    run periphery scan --strict
+
+    # Reject additions of @unchecked Sendable / nonisolated(unsafe) without an inline justification comment.
+    unsafe_additions=$(git diff --cached -U0 -- '*.swift' \
+        | grep -E '^\+[^+]' \
+        | grep -E '@unchecked Sendable|nonisolated\(unsafe\)' \
+        | grep -vE '//' || true)
+    if [[ -n "${unsafe_additions}" ]]; then
+        echo "==> FAIL: new @unchecked Sendable / nonisolated(unsafe) without an inline comment:" >&2
+        echo "${unsafe_additions}" >&2
+        exit 1
+    fi
+else
+    echo "==> No Swift files staged — skipping Swift checks."
 fi
 
 echo "==> All checks passed."
