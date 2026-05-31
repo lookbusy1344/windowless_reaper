@@ -1,0 +1,120 @@
+name: Release
+
+# Push a semver tag to cut a release:
+#
+#   git tag -a v1.2.0 -m "Release 1.2.0" && git push origin v1.2.0
+#
+# The job stamps the tag + commit into the binary, builds release, ad-hoc
+# signs with the stable identifier, and publishes the binary + tarball +
+# SHA256SUMS to a GitHub Release.
+#
+# Ad-hoc signature carries no Developer-ID identity: a `curl` download runs as
+# is; a browser download is quarantined and needs one `xattr -dr
+# com.apple.quarantine ./wreaper` before first run. Accessibility is granted
+# manually in either case. See DISTRIBUTION.md.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, Sign & Publish
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      # Stock runner Xcode ships only Swift 6.2; we build against the latest
+      # toolchain (see CLAUDE.md). Xcode is still selected for the macOS SDK.
+      - name: Select Xcode (provides the macOS SDK)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest-stable'
+
+      - name: Install latest Swift toolchain via swiftly
+        run: |
+          curl -fsSL -O https://download.swift.org/swiftly/darwin/swiftly.pkg
+          installer -pkg swiftly.pkg -target CurrentUserHomeDirectory
+          echo "${HOME}/.swiftly/bin" >> "$GITHUB_PATH"
+          "${HOME}/.swiftly/bin/swiftly" init --quiet-shell-followup --assume-yes --skip-install
+          "${HOME}/.swiftly/bin/swiftly" install latest --use --assume-yes
+          swift --version
+
+      - name: Derive version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version + commit into the binary
+        run: scripts/stamp-version.sh "${{ steps.ver.outputs.version }}" "$(git rev-parse --short=12 HEAD)"
+
+      - name: Build release
+        run: swift build -c release
+
+      - name: Ad-hoc sign with stable identifier
+        run: scripts/sign.sh
+
+      - name: Verify signature and embedded version
+        run: |
+          codesign --verify --strict --verbose=4 .build/release/wreaper
+          .build/release/wreaper --version
+
+      - name: Package artifacts
+        id: pkg
+        run: |
+          set -euo pipefail
+          version="${{ steps.ver.outputs.version }}"
+          staging="$(mktemp -d)"
+          cp .build/release/wreaper "${staging}/wreaper"
+          tarball="wreaper-${version}-macos.tar.gz"
+          tar -czf "${staging}/${tarball}" -C .build/release wreaper
+          (
+            cd "${staging}"
+            shasum -a 256 wreaper "${tarball}" > SHA256SUMS
+          )
+          echo "staging=${staging}" >> "$GITHUB_OUTPUT"
+          echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
+          cat "${staging}/SHA256SUMS"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGING: ${{ steps.pkg.outputs.staging }}
+          TARBALL: ${{ steps.pkg.outputs.tarball }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        # printf (not a heredoc) so YAML block indentation can't leak leading
+        # spaces into the markdown and break the code fences.
+        run: |
+          set -euo pipefail
+          {
+            printf '## wreaper %s\n\n' "$VERSION"
+            printf 'macOS CLI, **ad-hoc signed** (no Developer-ID / notarisation).\n\n'
+            printf '### Install\n'
+            printf '```bash\n'
+            printf 'curl -L -o wreaper \\\n'
+            printf '  https://github.com/%s/releases/download/%s/wreaper\n' "$REPO" "$TAG"
+            printf 'chmod +x wreaper\n'
+            printf '```\n'
+            printf 'A `curl` download runs as is. A browser download is quarantined; clear it once:\n'
+            printf '```bash\n'
+            printf 'xattr -dr com.apple.quarantine ./wreaper\n'
+            printf '```\n'
+            printf '`wreaper` needs Accessibility — grant it in System Settings, or run `wreaper permissions request`.\n\n'
+            printf '### Verify\n'
+            printf '```bash\n'
+            printf 'shasum -a 256 -c SHA256SUMS\n'
+            printf 'codesign -dvv ./wreaper   # Signature=adhoc, Identifier=com.user.windowless-reaper\n'
+            printf '```\n'
+          } > "${RUNNER_TEMP}/notes.md"
+          gh release create "$TAG" \
+            --title "wreaper ${VERSION}" \
+            --notes-file "${RUNNER_TEMP}/notes.md" \
+            "${STAGING}/wreaper" \
+            "${STAGING}/${TARBALL}" \
+            "${STAGING}/SHA256SUMS"

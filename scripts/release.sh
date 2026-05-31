@@ -49,6 +49,12 @@ require_env() {
 
 [[ -f Package.swift ]] || { echo "release.sh: expected Package.swift in $(pwd)" >&2; exit 2; }
 
+# Stamping rewrites the committed BuildInfo.swift placeholder; restore it on any
+# exit so the working tree is left as it was found (release.sh refuses a dirty
+# tree on entry, and we must not leave one behind).
+restore_build_info() { git checkout -- Sources/wreaper/BuildInfo.swift 2>/dev/null || true; }
+trap restore_build_info EXIT
+
 # Preflight: every check that does NOT need Apple credentials. These run in
 # both real and dry-run mode and must all pass before we touch codesign/
 # notarytool or the git tag.
@@ -70,6 +76,8 @@ preflight() {
     swiftlint --strict --no-cache
     echo ">> running tests"
     gtimeout 120 swift test --parallel --disable-sandbox
+    echo ">> stamping version $VERSION"
+    scripts/stamp-version.sh "$VERSION"
     echo ">> building release binary"
     swift build -c release --disable-sandbox
     [[ -f .build/release/wreaper ]] || {
