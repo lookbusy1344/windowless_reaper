@@ -31,29 +31,23 @@ public final class NSWorkspaceSleepWake: SleepWakeObserver {
 
     public func start() async {
         let center = NSWorkspace.shared.notificationCenter
-        // Register inside the lock so the freshly created (non-Sendable) tokens
-        // are born in the state's region; their only captures (`center`, `self`)
-        // are Sendable, so nothing task-isolated merges into the `inout sending`
-        // parameter. Hoisting registration out (as a separate withLock) trips
-        // Swift 6.2 region isolation: 'inout sending' cannot be task-isolated.
-        state.withLock { s in
-            guard s.tokens.isEmpty else { return }
-            let wake = center.addObserver(
-                forName: NSWorkspace.didWakeNotification,
-                object: nil,
-                queue: nil
-            ) { [weak self] _ in
-                self?.handleWake()
-            }
-            let sleep = center.addObserver(
-                forName: NSWorkspace.willSleepNotification,
-                object: nil,
-                queue: nil
-            ) { [weak self] _ in
-                self?.handleWillSleep()
-            }
-            s.tokens = [wake, sleep]
+        if state.withLock({ !$0.tokens.isEmpty }) { return }
+
+        let wake = center.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            self?.handleWake()
         }
+        let sleep = center.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            self?.handleWillSleep()
+        }
+        state.withLock { $0.tokens = [wake, sleep] }
     }
 
     public func stop() async {
