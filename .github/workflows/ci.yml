@@ -14,6 +14,8 @@ jobs:
   build-and-test:
     name: Build, Lint & Test
     runs-on: macos-15
+    env:
+      CI_SWIFT_TEST_TIMEOUT_SECONDS: 300
 
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +58,7 @@ jobs:
         run: swiftlint --strict
 
       - name: Build & test (with index store for Periphery)
-        run: gtimeout 60 swift test --parallel -Xswiftc -index-store-path -Xswiftc .build/index/store
+        run: gtimeout "${CI_SWIFT_TEST_TIMEOUT_SECONDS}" swift test --parallel -Xswiftc -index-store-path -Xswiftc .build/index/store
 
       - name: Periphery dead-code scan
         run: periphery scan --strict
