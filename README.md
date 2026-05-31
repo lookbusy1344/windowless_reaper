@@ -1,4 +1,6 @@
-# windowless-reaper
+# Windowless Reaper for macOS
+
+![wreaper logo](wreaper_logo.jpg)
 
 `wreaper` (a portmanteau of **w**indowless + **reaper**) is a
 macOS background daemon that politely terminates apps the user has forgotten
@@ -6,13 +8,21 @@ about — apps that have been running with **no visible window** for longer
 than a per-app timeout. It is strictly allowlist-driven: only bundle IDs
 named in the config are ever candidates.
 
+- Whitelist only: no app is touched without an explicit rule
+- Only windowless apps: visible or minimised windows reset the timer
+- Polite termination: always `terminate()`, never `forceTerminate()`
+- Daemon checks every 30s by default, with hot-reloadable config
+- Behaves well under sleep/wake — no false reaps after wake, and sleep does not
+  advance timers
+- CLI supports one-shot checks and clears for manual use `wreaper check` / `wreaper clear`
+
 ## Why
 
-macOS apps routinely linger after the last window closes (Mail, Safari, Slack,
-…). They consume RAM and battery for no benefit. `wreaper` watches them and,
-once an app has been windowless for the configured timeout, sends a polite
+macOS apps routinely linger after the last window is closed by clicking close (the red circle). This is great because it allows them to restart almost instantly, but they consume RAM and other system resources as a downside. `wreaper` monitors them and, once an app has been windowless for the configured timeout, sends a polite
 `NSRunningApplication.terminate()`. If the app vetoes (e.g. unsaved work), the
 timer resets and nothing is forced.
+
+Only whitelisted apps are candidates, and no running or minimised window is ever closed. So there should be zero chance of losing work. However use at your own risk!
 
 ---
 
