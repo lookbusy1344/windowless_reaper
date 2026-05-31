@@ -1,4 +1,4 @@
-# Notes
+# wreaper operational notes
 
 ## Build and deployment
 
@@ -26,6 +26,147 @@ wreaper check
 wreaper clear
 wreaper config scaffold
 ```
+
+## Accessibility permission
+
+`wreaper` needs the macOS Accessibility grant because visibility checks and
+polite termination both go through APIs guarded by TCC.
+
+Grant it once in the GUI:
+
+1. Open `System Settings`.
+2. Go to `Privacy & Security`.
+3. Open `Accessibility`.
+4. Add the exact on-disk `wreaper` binary path you intend to run, for example
+   `/usr/local/bin/wreaper`.
+
+Verify from the command line:
+
+```
+wreaper permissions check
+```
+
+That command is the CLI-side confirmation point. macOS does not expose a
+supported CLI or API to grant Accessibility permission directly, so grant is
+GUI-managed and verification is command-line.
+
+If you replace the binary in place and keep the same code-signing identifier,
+the existing Accessibility grant should remain valid. This is why the release
+flow signs with a stable identifier before install/update.
+
+## First-time daemon install
+
+Use this flow when setting up the persistent `launchd` daemon for the first
+time.
+
+### 1. Build and sign
+
+```
+swift build -c release
+scripts/sign.sh
+codesign --verify --strict --verbose=4 .build/release/wreaper
+```
+
+### 2. Copy to the stable install path
+
+Pick one path and keep using it. The Accessibility grant is tied to the exact
+binary path, so avoid moving the installed binary around between updates.
+
+Examples:
+
+```
+cp .build/release/wreaper /usr/local/bin/
+```
+
+or
+
+```
+cp .build/release/wreaper "$(brew --prefix)/bin/"
+```
+
+### 3. Grant Accessibility to that exact path
+
+In `System Settings -> Privacy & Security -> Accessibility`, add the installed
+binary path, for example `/usr/local/bin/wreaper`.
+
+### 4. Verify permission from the CLI
+
+```
+wreaper permissions check
+```
+
+### 5. Install and load the LaunchAgent
+
+```
+wreaper install --user
+```
+
+If you installed the binary somewhere non-default, tell the installer which
+prefix to use:
+
+```
+wreaper install --user --prefix /opt/homebrew
+```
+
+### 6. Verify the daemon is live
+
+```
+launchctl print gui/$(id -u)/com.user.windowless-reaper
+tail -F ~/Library/Logs/windowless-reaper.log
+```
+
+The log file is the authoritative runtime output when running under
+`launchd`.
+
+## Updating the daemon after a rebuild
+
+Use this flow after rebuilding `wreaper` and wanting the already-installed
+daemon to pick up the new binary.
+
+### 1. Rebuild and sign the new binary
+
+```
+swift build -c release
+scripts/sign.sh
+codesign --verify --strict --verbose=4 .build/release/wreaper
+```
+
+### 2. Replace the installed binary in place
+
+Replace the existing binary at the same path you originally granted in
+Accessibility settings.
+
+Examples:
+
+```
+cp .build/release/wreaper /usr/local/bin/
+```
+
+or
+
+```
+cp .build/release/wreaper "$(brew --prefix)/bin/"
+```
+
+### 3. Restart the loaded LaunchAgent
+
+`launchd` keeps the old inode open until you bounce the job.
+
+```
+launchctl kickstart -k gui/$(id -u)/com.user.windowless-reaper
+```
+
+If you used a custom label, use the exact label printed by `wreaper install`.
+
+### 4. Verify the updated daemon
+
+```
+launchctl print gui/$(id -u)/com.user.windowless-reaper
+tail -n 50 ~/Library/Logs/windowless-reaper.log
+```
+
+If the install path and code-signing identifier remain stable, you should not
+need to re-grant Accessibility after an update.
 
 ## Memory load
 
@@ -59,6 +200,9 @@ bat ~/Library/Logs/windowless-reaper.log
 
 ## Installing as background task
 
+The first-time install and update procedures above are the authoritative
+workflow. This section keeps the low-level reference details in one place.
+
 Install as a per-user LaunchAgent, starts automatically on login:
 
 ```
@@ -84,6 +228,10 @@ launchctl kickstart -k gui/$(id -u)/<label>
 ```
 
 The exact label is what wreaper install printed (LaunchAgentPlist.label).
+
+Updating the daemon is the same binary replacement flow followed by a
+`launchctl kickstart -k ...` bounce. If you keep the same install path and a
+stable signing identifier, you should not need to re-grant Accessibility.
 
 ## Logs (when installed as a task)
 

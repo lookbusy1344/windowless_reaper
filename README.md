@@ -39,13 +39,22 @@ wreaper permissions check
 ```
 
 `DISTRIBUTION.md` covers the signed/notarised release flow.
+For more operational detail, see [docs/wreaper_notes.md](docs/wreaper_notes.md), which covers Accessibility grant/verification, daemon install/update, log locations, and `launchctl` lifecycle.
 
 ---
 
 ## One-shot commands
 
-The two one-shot commands are the recommended workflow for most users,
-invoked on demand or from `cron` / `launchd`'s `StartCalendarInterval`:
+`wreaper` supports two operating modes:
+
+- One-shot CLI commands: run once, print/report the result, then exit.
+- A persistent `launchd` daemon: run continuously in the background and
+  reload config on save.
+
+The two one-shot commands below are useful for manual verification and
+scheduled fire-and-exit workflows via `cron` or `launchd`'s
+`StartCalendarInterval`. For continuous background reaping, use the
+`launchd` workflow in [Live-running under launchd](#live-running-under-launchd):
 
 - `wreaper check` — dry-run a single tick, print decisions, exit
   non-zero if any rule would evict. Good for verifying config.
@@ -60,8 +69,8 @@ Example: reap every 15 minutes from the user's `cron`:
 ```
 
 See [Manually test before going live](#manually-test-before-going-live)
-for full output samples and flags. The launchd section below documents the
-flow that returns once the gate is lifted.
+for full output samples and flags. The `launchd` section below documents
+the persistent background setup.
 
 ---
 
@@ -237,15 +246,34 @@ WREAPER_RUN_INTEGRATION_TESTS=1 swift test --filter Testing.Tag/integration
 
 ## Live-running under launchd
 
-> **Soft gate — daemon mode is unproven under launchd.** `wreaper install
-> --user` and `wreaper run` are not refused in code; the engine works and
-> tests pass. But foreground use is not the same evidence as 72 hours
-> under launchd, where session type, signal delivery, and `NSWorkspace`
-> notification delivery all differ. Until the soak procedure below
-> (["72-hour soak before lifting the gate"](#72-hour-soak-before-lifting-the-gate))
-> has been completed once with passing criteria, treat `wreaper install`
-> as opt-in for soak testing only. For routine reaping, prefer the
-> one-shot commands `wreaper check` and `wreaper clear` from `cron`.
+`wreaper install --user` is intended for routine background use under
+`launchd`. Local soak testing has now run for roughly 14 days without
+observed memory growth, sleep/wake regressions, or `launchd` stability
+issues. That does not remove the need to validate your own rule set, but
+the install path is no longer treated as experimental.
+
+Operational details for install, update, restart, logs, and disable/uninstall
+are in [docs/wreaper_notes.md](docs/wreaper_notes.md).
+
+### Install/update summary
+
+First-time daemon install:
+
+1. Build and sign the binary.
+2. Copy it to its stable install path.
+3. Grant Accessibility to that exact path in System Settings.
+4. Verify with `wreaper permissions check`.
+5. Load the LaunchAgent with `wreaper install --user`.
+
+Updating the daemon after a rebuild:
+
+1. Rebuild and sign the new binary.
+2. Replace the binary at the same installed path.
+3. Restart the running agent with `launchctl kickstart -k gui/$(id -u)/<label>`.
+4. Confirm the agent is running and logging normally.
+
+If the install path and signing identifier stay stable, you should not need
+to re-grant Accessibility on update.
 
 ```bash
 wreaper install --user                  # write & load ~/Library/LaunchAgents/com.user.windowless-reaper.plist
@@ -258,13 +286,13 @@ wreaper uninstall --user
 The plist runs `wreaper run` with `RunAtLoad=true` and `KeepAlive=true`, as
 `ProcessType=Background`.
 
-### 72-hour soak before lifting the gate
+### Suggested soak before enabling real terminations
 
 A foreground `wreaper run` is not the same evidence as the same binary
 running under launchd: signal delivery, session type, log routing, and
 whether `NSWorkspace` notifications arrive in the agent's session all
-differ. Before flipping the gate above, soak the installed daemon for
-72 hours and diff its `runtime-health` counters.
+differ. Before flipping `dry_run = false`, soak the installed daemon for
+at least 72 hours and diff its `runtime-health` counters.
 
 The engine emits a `runtime-health` log line on the first tick and again
 once every hour after that (see `ReaperEngine.healthLogInterval`). One
