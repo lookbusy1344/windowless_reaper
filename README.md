@@ -25,7 +25,7 @@ Only whitelisted apps are candidates, and no running or minimised window is ever
 
 However use at your own risk!
 
-I have Raycast configured to call `wreaper clear` on `opt`+`cmd`+`w` which works really well.
+I also have Raycast configured to call `wreaper clear` on `opt`+`cmd`+`w` which works really well.
 
 ---
 
