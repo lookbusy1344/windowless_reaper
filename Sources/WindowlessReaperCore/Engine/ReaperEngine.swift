@@ -185,6 +185,13 @@ public actor ReaperEngine {
             "run started pollInterval=\(config.settings.pollInterval) dryRun=\(cliDryRun || config.settings.dryRun)"
         )
 
+        // Seed the start-of-run baseline (ticks=0) here, before any tick. The
+        // in-loop emits then fire *after* each tick so a snapshot logged on
+        // wake reflects the grace skip that tick consumed — otherwise the dump
+        // lands between the eager skipped_asleep++ and the in-tick
+        // skipped_grace++, showing grace one behind asleep.
+        await emitHealthSnapshotIfDue(now: clock.now())
+
         while !Task.isCancelled {
             if await sleepWake.isAsleep() {
                 runtimeHealth.noteSkip(.asleep)

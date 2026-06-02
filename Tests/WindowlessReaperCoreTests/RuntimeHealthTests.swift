@@ -113,6 +113,66 @@ struct RuntimeHealthTests {
         #expect(healthLines.isEmpty, "wreaper check / clear call tick() directly and must not log runtime-health")
     }
 
+    /// Pull a `key=value` integer out of a `runtime-health` log line.
+    private func metric(_ key: String, in line: String) -> Int? {
+        line.split(separator: " ")
+            .first { $0.hasPrefix("\(key)=") }
+            .flatMap { Int($0.dropFirst(key.count + 1)) }
+    }
+
+    @Test("post-wake runtime-health dump keeps skipped_grace in step with skipped_asleep")
+    func postWakeHealthDumpNotSkewed() async {
+        let clock = TestClock()
+        let sink = RecordingLogHandler.Sink()
+        let sleepWake = FakeSleepWake()
+        let logger = Logger(label: "test.health") { _ in RecordingLogHandler(sink: sink) }
+        let engine = ReaperEngine(
+            config: Config(settings: Settings.defaults, rules: [:]),
+            enumerator: FakeAppEnumerator(apps: []),
+            inspector: FakeWindowInspector(states: [:]),
+            terminator: FakeTerminator(),
+            clock: clock,
+            sleepWake: sleepWake,
+            powerState: FakePowerState(),
+            logger: logger
+        )
+        func healthLines() -> [String] {
+            sink.messages().filter { $0.contains("runtime-health") }
+        }
+
+        let task = Task { await engine.run() }
+        await Task.yield()
+        #expect(await AsyncWait.until { sink.messages().contains { $0.contains("runtime-health") } }, "baseline snapshot must emit at run start")
+        #expect(await AsyncWait.until { await clock.subscriberCount > 0 })
+
+        // Sleep: the visible epoch tears down and the run loop records one
+        // skipped_asleep before parking in waitUntilAwake. Wait for the
+        // suspend log so the skip is counted before we wake — otherwise the
+        // loop may observe the wake first and skip the asleep branch entirely.
+        await sleepWake.simulateSleep()
+        #expect(await AsyncWait.until { sink.messages().contains { $0.contains("run suspended — system asleep") } })
+
+        // Wall time elapses past the health-log interval so the first
+        // post-wake snapshot is due the moment the engine resumes.
+        await clock.advance(by: Duration(seconds: 3600))
+
+        // Wake arms the grace tick; the engine re-enters the visible epoch.
+        await sleepWake.simulateWake()
+        #expect(await AsyncWait.until { sink.messages().count(where: { $0.contains("runtime-health") }) >= 2 }, "post-wake snapshot must emit once the interval has elapsed")
+
+        task.cancel()
+        #expect(await AsyncWait.awaitCompletion(of: task))
+
+        let last = healthLines().last ?? ""
+        let asleep = metric("skipped_asleep", in: last)
+        let grace = metric("skipped_grace", in: last)
+        #expect(asleep == 1, "expected one recorded sleep, line: \(last)")
+        #expect(
+            grace == asleep,
+            "post-wake dump must not show skipped_grace lagging skipped_asleep — the grace skip is counted inside tick(), so the dump must follow the tick. line: \(last)"
+        )
+    }
+
     @Test("diagnose report renders runtime health")
     func diagnoseReportRendersRuntimeHealth() {
         let health = RuntimeHealthSnapshot(

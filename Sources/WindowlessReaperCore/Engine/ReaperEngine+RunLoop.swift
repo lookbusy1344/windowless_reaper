@@ -19,10 +19,13 @@ extension ReaperEngine {
     }
 
     func runVisibleEpoch(cliDryRun: Bool) async {
-        // Scan immediately so the first observation lands at t=0.
+        // Scan immediately so the first observation lands at t=0. The health
+        // snapshot is emitted *after* the tick so a post-wake dump reflects the
+        // grace skip that tick consumed (the run-start baseline is seeded in
+        // run()).
         if !Task.isCancelled {
-            await emitHealthSnapshotIfDue(now: clock.now())
             _ = await tick(dryRun: cliDryRun)
+            await emitHealthSnapshotIfDue(now: clock.now())
         }
 
         await withTaskGroup(of: EpochExit.self) { group in
@@ -80,8 +83,8 @@ extension ReaperEngine {
             let stream = clock.tickStream(interval: effective)
             for await _ in stream {
                 if Task.isCancelled { break }
-                await emitHealthSnapshotIfDue(now: clock.now())
                 _ = await tick(dryRun: cliDryRun)
+                await emitHealthSnapshotIfDue(now: clock.now())
                 if config.settings.pollInterval != baseInterval {
                     logger.notice(
                         "pollInterval changed \(baseInterval) -> \(config.settings.pollInterval); recreating tick stream"
