@@ -114,6 +114,9 @@ timeout = "default"
 [apps."com.apple.audio.AudioMIDISetup"]
 timeout = "default"
 
+[apps."com.apple.FileMerge"]
+timeout = "default"
+
 [apps."com.apple.Chess"]
 timeout = "default"
 
