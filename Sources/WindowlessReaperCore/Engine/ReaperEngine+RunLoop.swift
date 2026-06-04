@@ -33,27 +33,23 @@ extension ReaperEngine {
                 await tickLoop(cliDryRun: cliDryRun)
                 return .tickLoopEnded
             }
+            // Level-triggered, not edge-triggered: act on every emission
+            // including the on-subscribe snapshot. We only enter this epoch
+            // when already visible-and-awake, so the snapshot is `true` and a
+            // no-op. Skipping the first emission instead would race the
+            // observer's snapshot against a real transition delivered in the
+            // (non-atomic) subscribe window — the discarded `false` would then
+            // strand the epoch, leaking the tick stream. See
+            // SleepStateTickSuspensionTests "rapid sleep/wake flap".
             group.addTask { [self] in
-                // Skip the initial "current state" yield — we only care
-                // about transitions out of the visible-and-awake state.
-                var first = true
-                for await visible in powerState.transitions() {
-                    if first {
-                        first = false
-                        continue
-                    }
-                    if !visible { return .visibilityLost }
+                for await visible in powerState.transitions() where !visible {
+                    return .visibilityLost
                 }
                 return .streamClosed
             }
             group.addTask { [self] in
-                var first = true
-                for await awake in sleepWake.transitions() {
-                    if first {
-                        first = false
-                        continue
-                    }
-                    if !awake { return .systemAsleep }
+                for await awake in sleepWake.transitions() where !awake {
+                    return .systemAsleep
                 }
                 return .streamClosed
             }
