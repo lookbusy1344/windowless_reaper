@@ -53,8 +53,10 @@ signing-mode tradeoffs.
 
 Requires Swift 6.2+ (pinned in `.swift-version` and `Package.swift`), tested
 with the Xcode 16+ toolchain. SwiftPM only — there is no `.xcodeproj` or
-`.xcworkspace`. You can open `Package.swift` in Xcode to browse, but builds
-and tests go through `swift`.
+`.xcworkspace`. To open in Xcode, open the package itself (`open Package.swift`,
+or *File → Open* on the project folder); Xcode resolves it and uses its bundled
+toolchain. Editing/browsing there is fine, but builds and tests go through
+`swift`, and never commit generated `.xcodeproj`/`.xcworkspace`/scheme files.
 
 ```bash
 scripts/dev-build.sh -c release              # build, stamping the live git version
