@@ -86,14 +86,24 @@ public final class RotatingFileSink: Sendable {
         do {
             let fm = FileManager.default
             try fm.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true)
-            if !fm.fileExists(atPath: path.path) {
-                fm.createFile(atPath: path.path, contents: nil)
+            // O_APPEND is load-bearing, not a convenience: every write(2)
+            // atomically repositions to the current EOF before writing. A
+            // plain O_WRONLY handle carries a fixed offset, so if the file
+            // is truncated in place out from under us (an external `: >`,
+            // `truncate`, or log viewer — none of which fire the vnode
+            // watcher's delete/rename/revoke events), the next write lands
+            // past the new EOF and the kernel zero-fills the gap into a
+            // sparse NUL hole. O_APPEND makes that case degrade to a clean
+            // append at the new EOF instead.
+            let fd = open(path.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+            guard fd >= 0 else {
+                reportError(POSIXError(.init(rawValue: errno) ?? .EIO))
+                return
             }
-            let handle = try FileHandle(forWritingTo: path)
-            let end = try handle.seekToEnd()
-            state.bytesWritten = Int(end)
+            let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+            state.bytesWritten = try Int(handle.seekToEnd())
             state.handle = handle
-            installWatcher(&state, fd: handle.fileDescriptor)
+            installWatcher(&state, fd: fd)
         } catch {
             reportError(error)
         }

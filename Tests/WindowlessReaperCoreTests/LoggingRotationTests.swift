@@ -141,6 +141,38 @@ struct LoggingRotationTests {
         #expect(active.contains("external-content"), "the externally-staged content must be preserved")
     }
 
+    @Test("does not leave a sparse NUL hole when the file is truncated in place underneath it")
+    func sinkSurvivesInPlaceTruncation() throws {
+        let tmp = try TemporaryDirectory(prefix: "wreaper-log")
+        defer { tmp.cleanup() }
+        let logPath = tmp.child("wr.log")
+        let sink = RotatingFileSink(path: logPath, maxBytes: 1024 * 1024)
+
+        // Build a non-trivial file so the daemon's handle carries a large
+        // file offset that a naive O_WRONLY open would keep across writes.
+        let filler = String(repeating: "a", count: 200) + "\n"
+        for _ in 0 ..< 50 {
+            sink.write(filler)
+        }
+        sink.flush()
+
+        // External in-place truncation: same inode, no rename/delete/revoke,
+        // so the vnode watcher never fires and the sink keeps its stale
+        // offset. A non-O_APPEND handle would then write past the new EOF,
+        // zero-filling the gap into a sparse NUL hole.
+        let truncator = try FileHandle(forWritingTo: logPath)
+        try truncator.truncate(atOffset: 0)
+        try truncator.close()
+
+        sink.write("after-truncate\n")
+        sink.flush()
+
+        let data = try Data(contentsOf: logPath)
+        #expect(!data.contains(0), "log must not contain NUL padding from a stale write offset")
+        let text = String(bytes: data, encoding: .utf8)
+        #expect(text == "after-truncate\n", "only post-truncation content should remain (got \(data.count) bytes)")
+    }
+
     @Test("reopen() rebinds the handle after external rename so new writes land in the new file")
     func sinkReopenAfterExternalRename() throws {
         let tmp = try TemporaryDirectory(prefix: "wreaper-log")
