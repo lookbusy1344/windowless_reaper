@@ -345,6 +345,7 @@ public extension ReaperEngine {
         skipped_implicit_wake=\(s.skippedImplicitWake) \
         config_updates=\(s.configUpdates) \
         ax_unknown_inspections=\(s.axUnknownInspections) \
+        ax_unreadable_windows=\(s.axUnreadableWindows) \
         checkpoint_save_failures=\(s.checkpointSaveFailures)
         """)
     }

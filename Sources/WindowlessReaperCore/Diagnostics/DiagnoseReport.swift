@@ -96,15 +96,7 @@ public struct DiagnoseReport: Sendable {
         out += "\n"
 
         if let health {
-            out += "[runtime-health]\n"
-            out += "ticks: \(health.ticks)\n"
-            out += "skipped_asleep: \(health.skippedAsleep)\n"
-            out += "skipped_not_visible: \(health.skippedNotVisible)\n"
-            out += "skipped_grace: \(health.skippedGrace)\n"
-            out += "skipped_implicit_wake: \(health.skippedImplicitWake)\n"
-            out += "config_updates: \(health.configUpdates)\n"
-            out += "ax_unknown_inspections: \(health.axUnknownInspections)\n"
-            out += "checkpoint_save_failures: \(health.checkpointSaveFailures)\n\n"
+            out += renderHealth(health)
         }
 
         out += "[recent-decisions]\n"
@@ -116,6 +108,21 @@ public struct DiagnoseReport: Sendable {
             }
         }
         return out
+    }
+
+    private func renderHealth(_ health: RuntimeHealthSnapshot) -> String {
+        """
+        [runtime-health]
+        ticks: \(health.ticks)
+        skipped_asleep: \(health.skippedAsleep)
+        skipped_not_visible: \(health.skippedNotVisible)
+        skipped_grace: \(health.skippedGrace)
+        skipped_implicit_wake: \(health.skippedImplicitWake)
+        config_updates: \(health.configUpdates)
+        ax_unknown_inspections: \(health.axUnknownInspections)
+        ax_unreadable_windows: \(health.axUnreadableWindows)
+        checkpoint_save_failures: \(health.checkpointSaveFailures)\n\n
+        """
     }
 
     private func format(_ decision: Decision) -> String {

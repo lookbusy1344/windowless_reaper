@@ -38,7 +38,7 @@ public struct AXWindowInspector: WindowInspector {
         self.logger = logger
     }
 
-    public func windowState(for pid: pid_t) async -> WindowState {
+    public func inspect(pid: pid_t) async -> WindowInspection {
         let element = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(element, Self.axMessagingTimeoutSeconds)
         var raw: CFTypeRef?
@@ -46,42 +46,50 @@ public struct AXWindowInspector: WindowInspector {
 
         if status == .cannotComplete {
             logger.warning("AX windows query timed out pid=\(pid)")
-            return .unknown
+            return WindowInspection(state: .unknown)
         }
         guard status == .success, let windows = raw as? [AXUIElement] else {
             logger.warning("AX windows query failed pid=\(pid) status=\(status)")
-            return .unknown
+            return WindowInspection(state: .unknown)
         }
         guard !windows.isEmpty else {
-            return .none
+            return WindowInspection(state: .none)
         }
 
         var sawVisible = false
         var sawMinimised = false
+        var unreadableWindows = 0
         for window in windows {
             AXUIElementSetMessagingTimeout(window, Self.axMessagingTimeoutSeconds)
-            if isMinimised(window, pid: pid) {
+            switch readMinimised(window, pid: pid) {
+            case .some(true):
                 sawMinimised = true
-            } else {
+            case .some(false):
                 sawVisible = true
+            case nil:
+                // Attribute unreadable: fall back to "not minimised" (never
+                // evict on a read we cannot trust) but record the blind spot.
+                sawVisible = true
+                unreadableWindows += 1
             }
         }
 
-        if sawVisible { return .visible }
-        if sawMinimised { return .minimised }
-        return .none
+        let state: WindowState = sawVisible ? .visible : (sawMinimised ? .minimised : .none)
+        return WindowInspection(state: state, unreadableWindows: unreadableWindows)
     }
 
-    private func isMinimised(_ window: AXUIElement, pid: pid_t) -> Bool {
+    /// `true`/`false` when the minimised attribute reads cleanly, `nil` when the
+    /// read fails (timeout or AX error) and the caller must fall back.
+    private func readMinimised(_ window: AXUIElement, pid: pid_t) -> Bool? {
         var raw: CFTypeRef?
         let status = AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &raw)
         if status == .cannotComplete {
             logger.warning("AX minimised query timed out pid=\(pid)")
-            return false
+            return nil
         }
         guard status == .success, let value = raw as? Bool else {
             logger.warning("AX minimised query failed pid=\(pid) status=\(status)")
-            return false
+            return nil
         }
         return value
     }

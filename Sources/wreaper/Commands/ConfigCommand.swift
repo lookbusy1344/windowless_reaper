@@ -75,7 +75,7 @@ struct ConfigCommand: AsyncParsableCommand {
             var states: [pid_t: WindowState] = [:]
             states.reserveCapacity(apps.count)
             for app in apps {
-                states[app.pid] = await inspector.windowState(for: app.pid)
+                states[app.pid] = await inspector.inspect(pid: app.pid).state
             }
 
             let bundles = ConfigScaffold.selectBundles(

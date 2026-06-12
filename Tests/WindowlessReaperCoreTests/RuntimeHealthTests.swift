@@ -53,6 +53,34 @@ struct RuntimeHealthTests {
         #expect(health.checkpointSaveFailures == 1)
     }
 
+    @Test("engine runtime health accumulates unreadable-window reads from the inspector")
+    func engineCountsUnreadableWindows() async {
+        let safari = BundleID("com.apple.Safari")
+        let config = Config(
+            settings: Settings.defaults,
+            rules: [safari: Rule(timeout: Duration(seconds: 10))]
+        )
+        // The app classifies as `.visible` (an unreadable minimised attribute
+        // falls back to not-minimised) yet the two failed reads must surface in
+        // the health counter rather than vanishing.
+        let engine = ReaperEngine(
+            config: config,
+            enumerator: FakeAppEnumerator(apps: [RunningApp(bundleID: safari, pid: 11)]),
+            inspector: FakeWindowInspector(states: [11: .visible], unreadableWindows: [11: 2]),
+            terminator: FakeTerminator(),
+            clock: TestClock(),
+            sleepWake: FakeSleepWake(),
+            powerState: FakePowerState()
+        )
+
+        _ = await engine.tick()
+        _ = await engine.tick()
+
+        let health = await engine.runtimeHealthSnapshot()
+        #expect(health.axUnreadableWindows == 4, "two failed reads per tick across two ticks")
+        #expect(health.axUnknownInspections == 0, "a visible app with unreadable windows is not unknown")
+    }
+
     private func makeQuietEngine(clock: TestClock, sink: RecordingLogHandler.Sink) -> ReaperEngine {
         let safari = BundleID("com.apple.Safari")
         let config = Config(
@@ -183,6 +211,7 @@ struct RuntimeHealthTests {
             skippedImplicitWake: 1,
             configUpdates: 2,
             axUnknownInspections: 4,
+            axUnreadableWindows: 5,
             checkpointSaveFailures: 1
         )
         let report = DiagnoseReport(
@@ -202,6 +231,7 @@ struct RuntimeHealthTests {
         #expect(text.contains("skipped_implicit_wake: 1"))
         #expect(text.contains("config_updates: 2"))
         #expect(text.contains("ax_unknown_inspections: 4"))
+        #expect(text.contains("ax_unreadable_windows: 5"))
         #expect(text.contains("checkpoint_save_failures: 1"))
     }
 }

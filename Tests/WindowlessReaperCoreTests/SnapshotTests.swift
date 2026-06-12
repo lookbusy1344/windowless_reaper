@@ -78,6 +78,7 @@ struct SnapshotTests {
                 skippedImplicitWake: 2,
                 configUpdates: 3,
                 axUnknownInspections: 17,
+                axUnreadableWindows: 4,
                 checkpointSaveFailures: 0
             )
         )

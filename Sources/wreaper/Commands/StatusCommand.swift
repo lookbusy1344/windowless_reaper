@@ -32,7 +32,7 @@ struct StatusCommand: AsyncParsableCommand {
         var rows: [StatusRow] = []
         rows.reserveCapacity(apps.count)
         for app in apps {
-            let state = await inspector.windowState(for: app.pid)
+            let state = await inspector.inspect(pid: app.pid).state
             rows.append(StatusRow(bundle: app.bundleID.value, pid: app.pid, state: state))
         }
 

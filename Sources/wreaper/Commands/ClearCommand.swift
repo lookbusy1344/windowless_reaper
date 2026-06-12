@@ -96,7 +96,7 @@ struct ClearCommand: AsyncParsableCommand {
             guard let rule = rules[bundleID], rule.timeout != nil else { continue }
             var states: [pid_t: WindowState] = [:]
             for app in runningApps {
-                states[app.pid] = await inspector.windowState(for: app.pid)
+                states[app.pid] = await inspector.inspect(pid: app.pid).state
             }
             let newestLaunch = runningApps.compactMap(\.launchDate).max()
             candidates.append(Candidate(

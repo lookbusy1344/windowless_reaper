@@ -107,20 +107,29 @@ public actor FakeAppEnumerator: AppEnumerator {
 public actor FakeWindowInspector: WindowInspector {
     private var states: [pid_t: WindowState]
     private var defaultState: WindowState
+    private var unreadableWindows: [pid_t: Int]
     public private(set) var requestedPIDs: [pid_t] = []
 
-    public init(states: [pid_t: WindowState] = [:], default defaultState: WindowState = .none) {
+    public init(
+        states: [pid_t: WindowState] = [:],
+        default defaultState: WindowState = .none,
+        unreadableWindows: [pid_t: Int] = [:]
+    ) {
         self.states = states
         self.defaultState = defaultState
+        self.unreadableWindows = unreadableWindows
     }
 
     public func setState(_ state: WindowState, for pid: pid_t) {
         states[pid] = state
     }
 
-    public func windowState(for pid: pid_t) -> WindowState {
+    public func inspect(pid: pid_t) -> WindowInspection {
         requestedPIDs.append(pid)
-        return states[pid] ?? defaultState
+        return WindowInspection(
+            state: states[pid] ?? defaultState,
+            unreadableWindows: unreadableWindows[pid] ?? 0
+        )
     }
 }
 

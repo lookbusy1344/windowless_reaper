@@ -28,6 +28,7 @@ skipped_grace: 6
 skipped_implicit_wake: 2
 config_updates: 3
 ax_unknown_inspections: 17
+ax_unreadable_windows: 4
 checkpoint_save_failures: 0
 
 [recent-decisions]

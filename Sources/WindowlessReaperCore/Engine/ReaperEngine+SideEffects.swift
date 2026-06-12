@@ -26,7 +26,9 @@ extension ReaperEngine {
         for (bundleID, runningApps) in grouped {
             var states: [pid_t: WindowState] = [:]
             for app in runningApps {
-                states[app.pid] = await inspector.windowState(for: app.pid)
+                let inspection = await inspector.inspect(pid: app.pid)
+                states[app.pid] = inspection.state
+                runtimeHealth.noteAXUnreadableWindows(count: inspection.unreadableWindows)
             }
             snapshots.append(AppSnapshot(bundleID: bundleID, windowStates: states))
         }

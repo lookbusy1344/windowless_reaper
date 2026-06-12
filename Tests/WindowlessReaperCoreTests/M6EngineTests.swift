@@ -63,10 +63,10 @@ struct M6EngineTests {
             self.state = state
         }
 
-        func windowState(for _: pid_t) async -> WindowState {
+        func inspect(pid _: pid_t) async -> WindowInspection {
             callCount += 1
             try? await Task.sleep(for: delay)
-            return state
+            return WindowInspection(state: state)
         }
     }
 

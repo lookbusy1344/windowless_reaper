@@ -80,7 +80,7 @@ struct M5RealAXTests {
         // process, not a defunct one — without depending on which other apps
         // happen to be running.
         let inspector = AXWindowInspector()
-        let state = await inspector.windowState(for: ProcessInfo.processInfo.processIdentifier)
+        let state = await inspector.inspect(pid: ProcessInfo.processInfo.processIdentifier).state
         #expect(state == .unknown)
     }
 

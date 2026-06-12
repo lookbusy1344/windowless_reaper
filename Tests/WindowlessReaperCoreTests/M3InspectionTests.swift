@@ -89,21 +89,21 @@ struct FakeWindowInspectorTests {
     @Test("returns configured state per PID")
     func returnsConfiguredState() async {
         let inspector = FakeWindowInspector(states: [100: .visible, 200: .none])
-        #expect(await inspector.windowState(for: 100) == .visible)
-        #expect(await inspector.windowState(for: 200) == .none)
+        #expect(await inspector.inspect(pid: 100).state == .visible)
+        #expect(await inspector.inspect(pid: 200).state == .none)
     }
 
     @Test("returns default for unknown PID")
     func returnsDefaultForUnknown() async {
         let inspector = FakeWindowInspector(default: .minimised)
-        #expect(await inspector.windowState(for: 999) == .minimised)
+        #expect(await inspector.inspect(pid: 999).state == .minimised)
     }
 
     @Test("setState updates per-PID state")
     func setStateUpdates() async {
         let inspector = FakeWindowInspector()
         await inspector.setState(.visible, for: 100)
-        #expect(await inspector.windowState(for: 100) == .visible)
+        #expect(await inspector.inspect(pid: 100).state == .visible)
     }
 }
 
