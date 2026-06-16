@@ -174,3 +174,7 @@ timeout = "default"
 
 [apps."net.whatsapp.WhatsApp"]
 timeout = "20m"
+
+# Cursor desktop
+[apps."com.todesktop.230313mzl4w4u92"]
+timeout = "10m"
