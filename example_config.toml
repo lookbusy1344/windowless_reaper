@@ -60,6 +60,9 @@ timeout = "5m"
 [apps."com.apple.iCal"]
 timeout = "5m"
 
+[apps."com.apple.MobileSMS"]
+timeout = "5m"
+
 [apps."com.apple.Maps"]
 timeout = "default"
 
