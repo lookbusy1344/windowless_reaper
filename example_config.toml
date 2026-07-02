@@ -43,7 +43,7 @@ clear_cooldown    = "30s"
 timeout = "5m"
 
 [apps."com.apple.Terminal"]
-timeout = "5m"
+timeout = "default"
 
 [apps."com.apple.ActivityMonitor"]
 timeout = "5m"
@@ -61,7 +61,7 @@ timeout = "5m"
 timeout = "5m"
 
 [apps."com.apple.MobileSMS"]
-timeout = "5m"
+timeout = "10m"
 
 [apps."com.apple.Maps"]
 timeout = "default"
@@ -150,10 +150,6 @@ timeout = "default"
 timeout = "5m"
 
 [apps."ai.elementlabs.lmstudio"]
-timeout = "default"
-# cooldown = "5m"
-
-[apps."net.sourceforge.grandperspectiv"]
 timeout = "default"
 
 # Audible is not killable for some reason. iPhone app??
