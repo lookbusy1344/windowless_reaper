@@ -51,6 +51,9 @@ timeout = "5m"
 [apps."com.apple.Preview"]
 timeout = "default"
 
+[apps."com.apple.Passwords"]
+timeout = "10m"
+
 [apps."com.apple.TextEdit"]
 timeout = "default"
 
