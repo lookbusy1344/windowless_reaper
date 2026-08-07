@@ -138,7 +138,13 @@ struct M6EngineTests {
         await clock.advance(by: Duration(seconds: 31))
         let decisions = await engine.tick(dryRun: true)
 
-        #expect(decisions.contains { d in if case .evict = d { true } else { false } })
+        #expect(decisions.contains { d in
+            if case .evict = d {
+                true
+            } else {
+                false
+            }
+        })
         #expect(await terminator.terminatedPIDs.isEmpty)
     }
 
@@ -163,8 +169,20 @@ struct M6EngineTests {
         // Engine called terminate but it returned false; tracker should have
         // re-anchored, not entered cooldown.
         let next = await engine.tick()
-        #expect(next.contains { d in if case .track = d { true } else { false } })
-        #expect(!next.contains { d in if case .cooldown = d { true } else { false } })
+        #expect(next.contains { d in
+            if case .track = d {
+                true
+            } else {
+                false
+            }
+        })
+        #expect(!next.contains { d in
+            if case .cooldown = d {
+                true
+            } else {
+                false
+            }
+        })
     }
 
     @Test("grace tick after wake short-circuits the tick")

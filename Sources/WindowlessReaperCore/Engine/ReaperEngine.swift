@@ -197,14 +197,18 @@ public actor ReaperEngine {
                 runtimeHealth.noteSkip(.asleep)
                 logger.notice("run suspended — system asleep")
                 await waitUntilAwake()
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 logger.notice("run resumed — system awake")
             }
             if !powerState.isUserVisible() {
                 runtimeHealth.noteSkip(.notVisible)
                 logger.notice("run suspended — awaiting user-visible state")
                 await waitUntilVisible()
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 logger.notice("run resumed — user-visible")
             }
             await runVisibleEpoch(cliDryRun: cliDryRun)
@@ -298,8 +302,12 @@ public actor ReaperEngine {
     // MARK: - Private
 
     func evictionPauseReason(thermalPause: Bool, snap: PressureSnapshot) -> String? {
-        if accessibilityRevoked { return "AX trust revoked" }
-        if thermalPause { return "thermal=\(snap.thermalState)" }
+        if accessibilityRevoked {
+            return "AX trust revoked"
+        }
+        if thermalPause {
+            return "thermal=\(snap.thermalState)"
+        }
         return nil
     }
 
@@ -321,8 +329,12 @@ public actor ReaperEngine {
         let h = totalSeconds / 3600
         let m = (totalSeconds % 3600) / 60
         let s = totalSeconds % 60
-        if h > 0 { return "\(h)h\(m)m\(s)s" }
-        if m > 0 { return "\(m)m\(s)s" }
+        if h > 0 {
+            return "\(h)h\(m)m\(s)s"
+        }
+        if m > 0 {
+            return "\(m)m\(s)s"
+        }
         return "\(s)s"
     }
 }
@@ -334,7 +346,9 @@ public actor ReaperEngine {
 /// start-of-run counter set rather than inferring it from the next hour.
 public extension ReaperEngine {
     func emitHealthSnapshotIfDue(now: SuspendingClock.Instant) {
-        if let last = lastHealthLogSuspending, now - last < Self.healthLogInterval { return }
+        if let last = lastHealthLogSuspending, now - last < Self.healthLogInterval {
+            return
+        }
         lastHealthLogSuspending = now
         let s = runtimeHealth.snapshot
         logger.notice("""
@@ -355,9 +369,15 @@ public extension ReaperEngine {
 /// Split from the main actor to keep tick() under cyclomatic budget.
 private extension ReaperEngine {
     func shouldSkipTick(suspending: SuspendingClock.Instant, continuous: ContinuousClock.Instant) async -> RuntimeHealth.SkipReason? {
-        if await sleepWake.isAsleep() { logger.debug("skipping tick — system asleep"); return .asleep }
-        if !powerState.isUserVisible() { logger.debug("skipping tick — system not user-visible (dark wake / display sleep)"); return .notVisible }
-        if await sleepWake.consumeGraceTick() { logger.notice("skipping tick after wake (grace period)"); return .grace }
+        if await sleepWake.isAsleep() {
+            logger.debug("skipping tick — system asleep"); return .asleep
+        }
+        if !powerState.isUserVisible() {
+            logger.debug("skipping tick — system not user-visible (dark wake / display sleep)"); return .notVisible
+        }
+        if await sleepWake.consumeGraceTick() {
+            logger.notice("skipping tick after wake (grace period)"); return .grace
+        }
         guard let lastS = lastTickSuspending, let lastC = lastTickContinuous else { return nil }
         let drift = (continuous - lastC) - (suspending - lastS)
         guard drift > Self.implicitWakeDriftThreshold else { return nil }

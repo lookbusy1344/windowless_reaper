@@ -41,7 +41,13 @@ struct AXTrustRevocationTests {
         await clock.advance(by: Duration(seconds: 20))
         let revokedDecisions = await engine.tick()
         #expect(
-            revokedDecisions.contains { if case .evict = $0 { true } else { false } },
+            revokedDecisions.contains {
+                if case .evict = $0 {
+                    true
+                } else {
+                    false
+                }
+            },
             "revoked engine must still produce evict decisions for observability"
         )
         let killedWhileRevoked = await terminator.terminatedPIDs

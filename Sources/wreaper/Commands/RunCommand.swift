@@ -79,7 +79,9 @@ struct RunCommand: AsyncParsableCommand {
     }
 
     static func startupAXGate(managedByLaunchd: Bool, isTrusted: Bool) -> StartupAXGate {
-        if isTrusted { return .proceed }
+        if isTrusted {
+            return .proceed
+        }
         return managedByLaunchd ? .proceed : .requireTrust
     }
 

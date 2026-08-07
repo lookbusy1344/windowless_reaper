@@ -81,7 +81,9 @@ public final class RotatingFileSink: Sendable {
     }
 
     private func ensureHandle(_ state: inout State) {
-        if state.handle != nil { return }
+        if state.handle != nil {
+            return
+        }
         state.bytesWritten = 0
         do {
             let fm = FileManager.default

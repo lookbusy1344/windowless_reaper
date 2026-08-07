@@ -31,7 +31,9 @@ public final class NSWorkspaceSleepWake: SleepWakeObserver {
 
     public func start() async {
         let center = NSWorkspace.shared.notificationCenter
-        if state.withLock({ !$0.tokens.isEmpty }) { return }
+        if state.withLock({ !$0.tokens.isEmpty }) {
+            return
+        }
 
         let wake = center.addObserver(
             forName: NSWorkspace.didWakeNotification,

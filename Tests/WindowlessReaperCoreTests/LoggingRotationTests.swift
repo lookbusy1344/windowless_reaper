@@ -64,7 +64,9 @@ struct LoggingRotationTests {
         while Date() < deadline {
             sink.write(probe)
             sink.flush()
-            if predicate() { return true }
+            if predicate() {
+                return true
+            }
             try? await Task.sleep(for: .milliseconds(20))
         }
         return false

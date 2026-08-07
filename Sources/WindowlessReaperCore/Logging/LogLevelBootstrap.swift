@@ -25,7 +25,9 @@ public enum LogLevelBootstrap {
     }
 
     public static func resolve(cliOverride: String?, configValue: String) throws -> Logging.Logger.Level {
-        if let override = cliOverride { return try parse(override) }
+        if let override = cliOverride {
+            return try parse(override)
+        }
         return try parse(configValue)
     }
 
@@ -79,7 +81,9 @@ public enum LogLevelBootstrap {
 
     private static func bootstrapOnce() {
         let shouldBootstrap: Bool = bootstrapFlag.withLock { flag in
-            if flag { return false }
+            if flag {
+                return false
+            }
             flag = true
             return true
         }

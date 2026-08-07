@@ -146,7 +146,9 @@ public actor FakeTerminator: Terminator {
     }
 
     public func terminate(pid: pid_t) -> Bool {
-        if vetoes.contains(pid) { return false }
+        if vetoes.contains(pid) {
+            return false
+        }
         terminatedPIDs.append(pid)
         return true
     }

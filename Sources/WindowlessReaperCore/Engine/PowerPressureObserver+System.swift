@@ -90,7 +90,9 @@ public final class SystemPowerPressure: PowerPressureObserver {
         let fresh = snapshot()
         let changed = state.withLock { s -> Bool in
             let c = s.last != fresh
-            if c { s.last = fresh }
+            if c {
+                s.last = fresh
+            }
             return c
         }
         guard changed else { return }

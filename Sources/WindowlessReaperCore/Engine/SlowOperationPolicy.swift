@@ -81,8 +81,12 @@ struct SlowOperationPolicy: Equatable {
         let h = totalSeconds / 3600
         let m = (totalSeconds % 3600) / 60
         let s = totalSeconds % 60
-        if h > 0 { return "\(h)h\(m)m\(s)s" }
-        if m > 0 { return "\(m)m\(s)s" }
+        if h > 0 {
+            return "\(h)h\(m)m\(s)s"
+        }
+        if m > 0 {
+            return "\(m)m\(s)s"
+        }
         return "\(s)s"
     }
 }

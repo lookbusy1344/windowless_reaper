@@ -195,7 +195,9 @@ struct M10ReleaseTests {
             let hit = text.components(separatedBy: "\n").contains { line in
                 needles.contains { line.contains("// \($0)") || line.contains("/* \($0)") }
             }
-            if hit { offenders.append(url.lastPathComponent) }
+            if hit {
+                offenders.append(url.lastPathComponent)
+            }
         }
         return offenders
     }
@@ -207,7 +209,9 @@ struct M10ReleaseTests {
             return []
         }
         for case let url as URL in enumerator {
-            if ignoring.contains(url.lastPathComponent) { continue }
+            if ignoring.contains(url.lastPathComponent) {
+                continue
+            }
             guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
             if needles.contains(where: text.contains(_:)) {
                 offenders.append(url.lastPathComponent)

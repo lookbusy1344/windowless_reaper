@@ -54,11 +54,17 @@ public enum ConfigScaffold {
         let grouped = Dictionary(grouping: apps, by: { $0.bundleID })
         var selected: [BundleID] = []
         for (bundleID, runningApps) in grouped {
-            if bundleID.value == ownBundleID { continue }
-            if isFilteredAppleSystem(bundleID, includeSystem: options.includeSystem) { continue }
+            if bundleID.value == ownBundleID {
+                continue
+            }
+            if isFilteredAppleSystem(bundleID, includeSystem: options.includeSystem) {
+                continue
+            }
             if options.windowlessOnly {
                 let allWindowless = runningApps.allSatisfy { windowStates[$0.pid] == WindowState.none }
-                if !allWindowless { continue }
+                if !allWindowless {
+                    continue
+                }
             }
             selected.append(bundleID)
         }

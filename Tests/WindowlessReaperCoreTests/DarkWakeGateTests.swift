@@ -67,7 +67,13 @@ struct DarkWakeGateTests {
         let decisions = await engine.tick()
 
         #expect(!decisions.isEmpty, "engine must produce decisions when user-visible")
-        let hasEvict = decisions.contains { if case .evict = $0 { true } else { false } }
+        let hasEvict = decisions.contains {
+            if case .evict = $0 {
+                true
+            } else {
+                false
+            }
+        }
         #expect(hasEvict, "engine must evict after timeout when user-visible")
     }
 

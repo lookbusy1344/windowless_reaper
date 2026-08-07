@@ -229,7 +229,9 @@ public final class IOKitSleepWake: SleepWakeObserver {
                 return !was
             }
             logger.notice("iokit power: system will sleep (acknowledged)")
-            if changed { broadcast(awake: false) }
+            if changed {
+                broadcast(awake: false)
+            }
         case .willPowerOn:
             let changed = asleep.withLock { current -> Bool in
                 let was = current
@@ -238,7 +240,9 @@ public final class IOKitSleepWake: SleepWakeObserver {
             }
             graceTickPending.withLock { $0 = true }
             logger.notice("iokit power: system powered on (willPowerOn) — AX grace period")
-            if changed { broadcast(awake: true) }
+            if changed {
+                broadcast(awake: true)
+            }
         case .hasPoweredOn:
             let stillAsleep = asleep.withLock { current -> Bool in
                 let was = current
@@ -250,7 +254,9 @@ public final class IOKitSleepWake: SleepWakeObserver {
             }
             graceTickPending.withLock { $0 = true }
             logger.notice("iokit power: system powered on (hasPoweredOn) — AX grace period")
-            if stillAsleep { broadcast(awake: true) }
+            if stillAsleep {
+                broadcast(awake: true)
+            }
         case .unknown(let raw):
             logger.notice("iokit power: unhandled message type 0x\(String(raw, radix: 16, uppercase: false))")
         }

@@ -84,7 +84,13 @@ struct AdaptivePressureTests {
 
         // Decision is still produced — observability is preserved — but the
         // terminator is never called because of the thermal pause.
-        #expect(decisions.contains { if case .evict = $0 { true } else { false } })
+        #expect(decisions.contains {
+            if case .evict = $0 {
+                true
+            } else {
+                false
+            }
+        })
         let killed = await terminator.terminatedPIDs
         #expect(killed.isEmpty, "thermal pause must not call terminate()")
     }

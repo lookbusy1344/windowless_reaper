@@ -33,9 +33,15 @@ public struct Duration: Hashable, Sendable, CustomStringConvertible {
         let m = remaining / 60
         remaining -= m * 60
         let s = remaining
-        if h > 0 { parts.append("\(h)h") }
-        if m > 0 { parts.append("\(m)m") }
-        if s > 0 || parts.isEmpty { parts.append("\(s)s") }
+        if h > 0 {
+            parts.append("\(h)h")
+        }
+        if m > 0 {
+            parts.append("\(m)m")
+        }
+        if s > 0 || parts.isEmpty {
+            parts.append("\(s)s")
+        }
         return parts.joined()
     }
 

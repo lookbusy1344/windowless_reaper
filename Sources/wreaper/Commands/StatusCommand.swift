@@ -37,7 +37,9 @@ struct StatusCommand: AsyncParsableCommand {
         }
 
         rows.sort { lhs, rhs in
-            if lhs.bundle != rhs.bundle { return lhs.bundle < rhs.bundle }
+            if lhs.bundle != rhs.bundle {
+                return lhs.bundle < rhs.bundle
+            }
             return lhs.pid < rhs.pid
         }
 

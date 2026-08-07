@@ -80,8 +80,14 @@ struct CheckpointSnapshotTests {
         // Need ~180s more to cross the 300s timeout from the restored 120s.
         await clockB.advance(by: Duration(seconds: 181))
         let decisions = await engineB.tick()
-        #expect(decisions.contains { if case .evict = $0 { true } else { false } },
-                "restored tracker did not preserve elapsed windowless time")
+        #expect(decisions.contains {
+            if case .evict = $0 {
+                true
+            } else {
+                false
+            }
+        },
+        "restored tracker did not preserve elapsed windowless time")
     }
 
     @Test("cooldown remaining survives round-trip")

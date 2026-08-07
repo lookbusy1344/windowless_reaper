@@ -35,8 +35,12 @@ public enum Cooldown: Hashable, Sendable {
 /// avoiding the `Int(Double)` trap when the product exceeds `Int.max`.
 private func clamp(product: Double, lower: Int, upper: Int) -> Int {
     let rounded = product.rounded()
-    if rounded >= Double(upper) { return upper }
-    if rounded <= Double(lower) { return lower }
+    if rounded >= Double(upper) {
+        return upper
+    }
+    if rounded <= Double(lower) {
+        return lower
+    }
     return Int(rounded)
 }
 

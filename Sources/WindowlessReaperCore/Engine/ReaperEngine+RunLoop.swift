@@ -78,7 +78,9 @@ extension ReaperEngine {
             }
             let stream = clock.tickStream(interval: effective)
             for await _ in stream {
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 _ = await tick(dryRun: cliDryRun)
                 await emitHealthSnapshotIfDue(now: clock.now())
                 if config.settings.pollInterval != baseInterval {

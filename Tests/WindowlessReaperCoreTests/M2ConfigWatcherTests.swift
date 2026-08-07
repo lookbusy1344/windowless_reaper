@@ -100,8 +100,12 @@ struct ConfigWatcherTests {
             var saw60 = false
 
             func record(_ seconds: Int) {
-                if seconds == 30 { saw30 = true }
-                if seconds == 60 { saw60 = true }
+                if seconds == 30 {
+                    saw30 = true
+                }
+                if seconds == 60 {
+                    saw60 = true
+                }
             }
 
             func sawFirstReload() -> Bool {
@@ -215,7 +219,9 @@ struct ConfigWatcherTests {
         let outcome: Bool = await withTaskGroup(of: WatcherOutcome?.self) { group in
             group.addTask {
                 for await result in watcher.events {
-                    if case .failure = result { return .received }
+                    if case .failure = result {
+                        return .received
+                    }
                 }
                 return nil
             }

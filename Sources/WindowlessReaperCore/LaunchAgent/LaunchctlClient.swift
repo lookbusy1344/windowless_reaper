@@ -141,7 +141,9 @@ public struct SystemProcessRunner: ProcessRunner {
                             return nil
                         }
                     }
-                    if let outcome { continuation.resume(with: outcome) }
+                    if let outcome {
+                        continuation.resume(with: outcome)
+                    }
                     timeoutTaskLock.withLock { $0 }?.cancel()
                 }
 

@@ -47,7 +47,13 @@ struct CheckCommand: AsyncParsableCommand {
             print(line)
         }
 
-        let wouldEvict = decisions.contains { if case .evict = $0 { true } else { false } }
+        let wouldEvict = decisions.contains {
+            if case .evict = $0 {
+                true
+            } else {
+                false
+            }
+        }
         if wouldEvict {
             throw ExitCode(1)
         }
@@ -60,7 +66,9 @@ struct CheckCommand: AsyncParsableCommand {
         var result: [BundleID: Date] = [:]
         for app in apps {
             guard let launch = app.launchDate else { continue }
-            if let existing = result[app.bundleID], existing >= launch { continue }
+            if let existing = result[app.bundleID], existing >= launch {
+                continue
+            }
             result[app.bundleID] = launch
         }
         return result

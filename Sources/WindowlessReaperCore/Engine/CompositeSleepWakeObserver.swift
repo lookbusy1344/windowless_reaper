@@ -90,7 +90,9 @@ public final class CompositeSleepWakeObserver: SleepWakeObserver {
                             s.lastEmitted = composite
                             return composite
                         }
-                        if let toEmit { continuation.yield(toEmit) }
+                        if let toEmit {
+                            continuation.yield(toEmit)
+                        }
                     }
                 }
                 return Task(operation: body)

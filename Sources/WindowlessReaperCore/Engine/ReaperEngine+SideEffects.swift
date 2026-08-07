@@ -68,7 +68,9 @@ extension ReaperEngine {
             }
             batch.append((bundleID, pids))
         }
-        if !batch.isEmpty { await performEvictions(batch) }
+        if !batch.isEmpty {
+            await performEvictions(batch)
+        }
     }
 
     /// Idempotent eviction (§4.16): stage every cooldown in the batch
@@ -91,11 +93,15 @@ extension ReaperEngine {
             let didStage = await tracker.beginEviction(
                 bundleID: group.bundleID, now: clock.now(), config: config
             )
-            if didStage { staged.append((group.bundleID, group.pids)) }
+            if didStage {
+                staged.append((group.bundleID, group.pids))
+            }
         }
         // Single durability barrier: every staged cooldown reaches disk
         // before the first terminator call.
-        if !staged.isEmpty { await flushCheckpoint(reason: "preEvict") }
+        if !staged.isEmpty {
+            await flushCheckpoint(reason: "preEvict")
+        }
 
         let start = ContinuousClock.now
         var totalPids = 0
@@ -111,7 +117,9 @@ extension ReaperEngine {
                 // real-world risk is negligible — not worth defensive code.
                 let accepted = await terminator.terminate(pid: pid)
                 logger.debug("terminate \(bundleID.value) pid=\(pid) accepted=\(accepted)")
-                if !accepted { allAccepted = false }
+                if !accepted {
+                    allAccepted = false
+                }
             }
             if allAccepted {
                 logger.notice("terminated \(bundleID.value) pids=\(pids.sorted())")
