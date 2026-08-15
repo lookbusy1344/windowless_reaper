@@ -165,6 +165,9 @@ timeout = "default"
 [apps."com.openai.codex"]
 timeout = "default"
 
+[apps."ai.opencode.desktop"]
+timeout = "default"
+
 [apps."com.microsoft.copilot-mac"]
 timeout = "default"
 
