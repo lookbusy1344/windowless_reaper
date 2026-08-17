@@ -180,6 +180,9 @@ timeout = "default"
 [apps."net.whatsapp.WhatsApp"]
 timeout = "20m"
 
+[apps."dev.hewig.jayjay"]
+timeout = "default"
+
 # Cursor desktop
 [apps."com.todesktop.230313mzl4w4u92"]
 timeout = "10m"
