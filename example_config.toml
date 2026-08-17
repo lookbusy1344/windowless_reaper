@@ -6,7 +6,7 @@
 poll_interval     = "30s"       # minimum: 10s
 
 # Logging verbosity: trace | debug | info | notice | warn | error
-log_level         = "info"
+log_level         = "warn" # "info"
 
 # When true, decisions are logged but terminate() is never called.
 dry_run           = false
@@ -160,16 +160,16 @@ timeout = "default"
 # timeout = "default"
 
 [apps."com.anthropic.claudefordesktop"]
-timeout = "default"
+timeout = "6m"
 
 [apps."com.openai.codex"]
-timeout = "default"
+timeout = "6m"
 
 [apps."ai.opencode.desktop"]
-timeout = "default"
+timeout = "6m"
 
 [apps."com.microsoft.copilot-mac"]
-timeout = "default"
+timeout = "6m"
 
 [apps."com.perforce.p4merge"]
 timeout = "1m"
