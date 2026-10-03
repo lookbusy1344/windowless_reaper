@@ -39,7 +39,7 @@ positives ("Redundant public accessibility") for production symbols that
 are only consumed across the module boundary by tests:
 
 ```bash
-swift build --build-tests -Xswiftc -index-store-path -Xswiftc .build/index/store
+swift build --build-tests --enable-index-store
 periphery scan --strict
 ```
 
@@ -69,7 +69,7 @@ commit on top of a red gate and leave it for later.
 - `swiftformat --lint .` clean
 - `swiftlint --strict` clean
 - `gtimeout 30 swift test --parallel` green
-- `periphery scan --strict` clean (after `swift build --build-tests -Xswiftc -index-store-path -Xswiftc .build/index/store`)
+- `periphery scan --strict` clean (after `swift build --build-tests --enable-index-store`)
 - No new `@unchecked Sendable` / `nonisolated(unsafe)` without a justification comment
 - CLI output changes ⇒ update the snapshot in `Tests/WindowlessReaperCoreTests/__Snapshots__/`
 

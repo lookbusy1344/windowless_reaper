@@ -5,6 +5,6 @@ retain_unused_protocol_func_params: false
 retain_files:
   - Tests/**
 skip_schemes_validation: true
-index_store_path: .build/index/store
+index_store_path: .build/out/Products/Debug/index/store
 skip_build: true
 strict: true

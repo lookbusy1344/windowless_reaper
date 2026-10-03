@@ -50,8 +50,9 @@ if [[ -n "${swift_staged}" ]]; then
     run swiftlint --strict
 
     # Build tests with index store populated so periphery can see test-target references,
-    # then run the suite — one compile cycle covers both.
-    run gtimeout 30 swift test --parallel -Xswiftc -index-store-path -Xswiftc .build/index/store
+    # then run the suite.
+    run swift build --build-tests --enable-index-store
+    run gtimeout 30 swift test --parallel
     run periphery scan --strict
 
     # Reject additions of @unchecked Sendable / nonisolated(unsafe) without an inline justification comment.

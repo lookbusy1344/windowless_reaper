@@ -60,8 +60,11 @@ jobs:
       - name: SwiftLint
         run: swiftlint --strict
 
-      - name: Build & test (with index store for Periphery)
-        run: gtimeout "${CI_SWIFT_TEST_TIMEOUT_SECONDS}" swift test --parallel -Xswiftc -index-store-path -Xswiftc .build/index/store
+      - name: Build (with index store for Periphery)
+        run: swift build --build-tests --enable-index-store
+
+      - name: Test
+        run: gtimeout "${CI_SWIFT_TEST_TIMEOUT_SECONDS}" swift test --parallel
 
       - name: Periphery dead-code scan
         run: periphery scan --strict
