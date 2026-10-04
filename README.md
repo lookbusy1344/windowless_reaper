@@ -15,6 +15,10 @@ named in the config are ever candidates.
 - Behaves well under sleep/wake — no false reaps after wake, and sleep does not advance timers
 - CLI supports one-shot checks and clears for manual use `wreaper check` / `wreaper clear`
 
+## Jujutsu
+
+This repo is managed with Jujutsu rather than Git. Try it out! https://docs.jj-vcs.dev/latest/
+
 ## Why
 
 macOS apps routinely linger after the last window is closed by clicking close (the red circle). This is great because it allows them to restart almost instantly, but they consume RAM and other system resources as a downside. `wreaper` monitors them and, once an app has been windowless for the configured timeout, sends a polite

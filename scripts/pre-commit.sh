@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # pre-commit.sh — run all required checks before committing.
 #
-# Wire into git (one-time setup):
+# Works in jj and plain Git checkouts.
+#
+# jj: no commit hooks, so run it directly before `jj commit`, `jj describe`
+# (finalising) and `jj squash`. It checks the files changed in `@`.
+#
+# Git: wire in as a hook (one-time setup); it checks the staged files:
 #   ln -sf ../../scripts/pre-commit.sh .git/hooks/pre-commit
 #
 # Or call manually:
@@ -17,6 +22,9 @@
 # ./scripts/pre-commit.sh
 
 set -euo pipefail
+
+# GUI and hook launches omit the Homebrew paths.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 resolve_script_path() {
     local source_dir=""
@@ -43,7 +51,35 @@ run() {
 
 echo "==> Running windowless_reaper pre-commit checks..."
 
-swift_staged=$(git diff --cached --name-only -- '*.swift')
+# A Git hook sets GIT_INDEX_FILE; in that case check the Git index, not jj.
+use_jj() {
+    [[ -z "${GIT_INDEX_FILE:-}" ]] && jj --ignore-working-copy root > /dev/null 2>&1
+}
+
+changed_files() {
+    if use_jj; then
+        jj diff --name-only -r @ --no-pager
+    else
+        git diff --cached --name-only
+    fi
+}
+
+# Swift sources, plus the tool and package config the checks depend on.
+readonly SWIFT_CHECK_PATTERN='(\.swift|(^|/)\.swiftformat|(^|/)\.swiftlint\.yml|(^|/)\.periphery\.yml|(^|/)Package\.resolved)$'
+
+changed_swift_files() {
+    changed_files | { grep -E "${SWIFT_CHECK_PATTERN}" || true; }
+}
+
+swift_diff_no_context() {
+    if use_jj; then
+        jj diff --git --context 0 -r @ --no-pager -- 'glob:"**/*.swift"'
+    else
+        git diff --cached -U0 -- '*.swift'
+    fi
+}
+
+swift_staged=$(changed_swift_files)
 
 if [[ -n "${swift_staged}" ]]; then
     run swiftformat --lint .
@@ -56,7 +92,7 @@ if [[ -n "${swift_staged}" ]]; then
     run periphery scan --strict
 
     # Reject additions of @unchecked Sendable / nonisolated(unsafe) without an inline justification comment.
-    unsafe_additions=$(git diff --cached -U0 -- '*.swift' \
+    unsafe_additions=$(swift_diff_no_context \
         | grep -E '^\+[^+]' \
         | grep -E '@unchecked Sendable|nonisolated\(unsafe\)' \
         | grep -vE '//' || true)
@@ -66,7 +102,7 @@ if [[ -n "${swift_staged}" ]]; then
         exit 1
     fi
 else
-    echo "==> No Swift files staged — skipping Swift checks."
+    echo "==> No Swift sources or tool config changed — skipping Swift checks."
 fi
 
 echo "==> All checks passed."
