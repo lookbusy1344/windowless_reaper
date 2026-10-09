@@ -25,9 +25,9 @@ permissions:
 jobs:
   release:
     name: Build, Sign & Publish
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # Stock runner Xcode ships only Swift 6.2; we build against the latest
       # toolchain (see CLAUDE.md). Xcode is still selected for the macOS SDK.
