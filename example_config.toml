@@ -137,6 +137,9 @@ timeout = "5m"
 [apps."dev.zed.Zed"]
 timeout = "8m"
 
+[apps."ai.autoexplore.gitcomet"]
+timeout = "default"
+
 [apps."com.google.Chrome"]
 timeout = "default"
 
@@ -172,7 +175,7 @@ timeout = "6m"
 timeout = "6m"
 
 [apps."com.perforce.p4merge"]
-timeout = "1m"
+timeout = "default"
 
 [apps."com.adobe.Photoshop"]
 timeout = "default"
@@ -180,9 +183,12 @@ timeout = "default"
 [apps."net.whatsapp.WhatsApp"]
 timeout = "20m"
 
+[apps."sh.brew.app"]
+timeout = "default"
+
 [apps."dev.hewig.jayjay"]
 timeout = "default"
 
 # Cursor desktop
-[apps."com.todesktop.230313mzl4w4u92"]
-timeout = "10m"
+# [apps."com.todesktop.230313mzl4w4u92"]
+# timeout = "10m"
